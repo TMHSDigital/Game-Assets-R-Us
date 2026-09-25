@@ -1,9 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Unreal: FBX in centimeters. LOD1..LODn ship as separate FBX files (import
-# them as LODs of the LOD0 static mesh); UCX_ colliders are embedded with
-# LOD0, which Unreal's FBX importer turns into convex collision.
-# Axis and scale settings are ported from the author's Blender-Developer-Tools
-# snippets/export_preset_unreal.py.
+# Unreal: FBX with geometry in meters and the file units declared as meters
+# (UnitScaleFactor 100); Unreal's FBX importer converts file units to
+# centimeters itself. LOD1..LODn ship as separate FBX files (import them as
+# LODs of the LOD0 static mesh); UCX_ colliders are embedded with LOD0,
+# which Unreal's FBX importer turns into convex collision.
+#
+# Not ported: Blender-Developer-Tools snippets/export_preset_unreal.py uses
+# global_scale = 100 with apply_unit_scale = false. The export round-trip
+# check showed those files come back from Blender's own importer with an
+# object scale of 100 (a 2 m wall at 200 m), so that preset is replaced.
+# TODO: confirm the import scale inside Unreal (docs/TODO.md).
 name = "unreal"
 kind = "mesh"
 status = "working"
@@ -20,8 +26,8 @@ collider_pattern = "UCX_{name}_{index:02d}"
 [export]
 axis_forward = "-Z"
 axis_up = "Y"
-global_scale = 100.0
-apply_unit_scale = false
-apply_scale_options = "FBX_SCALE_NONE"
+global_scale = 1.0
+apply_unit_scale = true
+apply_scale_options = "FBX_SCALE_ALL"
 bake_space_transform = false
 mesh_smooth_type = "FACE"
