@@ -17,11 +17,13 @@ from . import metrics
 
 def _apply_rot_scale(obj):
     before = {"rotation": list(obj.rotation_euler), "scale": list(obj.scale)}
-    loc, rot, scale = obj.matrix_world.decompose()
+    # matrix_basis, not matrix_world: matrix_world is stale until the
+    # depsgraph updates, which would silently drop the rotation.
+    loc, rot, scale = obj.matrix_basis.decompose()
     basis = rot.to_matrix().to_4x4() @ Matrix.Diagonal(scale.to_4d())
     obj.data.transform(basis)
     obj.data.update()
-    obj.matrix_world = Matrix.Translation(loc)
+    obj.matrix_basis = Matrix.Translation(loc)
     return {"id": "FIX.XFORM", "object": obj.name, "before": before,
             "after": {"rotation": list(obj.rotation_euler), "scale": list(obj.scale)}}
 
@@ -34,7 +36,7 @@ def _set_origin(obj, rule):
     before = list(obj.location)
     obj.data.transform(Matrix.Translation(-target))
     obj.data.update()
-    obj.location = obj.location + obj.matrix_world.to_3x3() @ target
+    obj.location = obj.location + obj.matrix_basis.to_3x3() @ target
     return {"id": "FIX.ORIGIN", "object": obj.name, "before": {"location": before, "local_offset": list(target)},
             "after": {"location": list(obj.location)}}
 

@@ -121,18 +121,29 @@ def cmd_brandscan(args):
     text_ext = {".toml", ".md", ".txt", ".json", ".py", ".ps1", ".yml", ".gltf"}
     skip_files = {os.path.normcase(os.path.abspath(p)) for p in
                   (os.path.join(ROOT, "data", "brand_blocklist.txt"), os.path.join(ROOT, "data", "brand_allowlist.txt"))}
-    for root_path in args.paths:
+
+    def walk(root_path):
+        if os.path.isfile(root_path):
+            yield root_path
+            return
         for dirpath, dirnames, filenames in os.walk(root_path):
             dirnames[:] = sorted(d for d in dirnames if d not in {".git", "__pycache__"})
             for name in sorted(filenames):
-                path = os.path.join(dirpath, name)
-                if os.path.normcase(os.path.abspath(path)) in skip_files:
-                    continue
-                surfaces.append((f"file:{path}", name))
-                if os.path.splitext(name)[1].lower() in text_ext:
-                    with open(path, encoding="utf-8", errors="replace") as fh:
-                        for lineno, line in enumerate(fh, 1):
-                            surfaces.append((f"{path}:{lineno}", line))
+                yield os.path.join(dirpath, name)
+
+    for root_path in args.paths:
+        if not os.path.exists(root_path):
+            print(f"BRANDSCAN missing path {root_path}")
+            return 2
+        for path in walk(root_path):
+            if os.path.normcase(os.path.abspath(path)) in skip_files:
+                continue
+            name = os.path.basename(path)
+            surfaces.append((f"file:{path}", name))
+            if os.path.splitext(name)[1].lower() in text_ext:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    for lineno, line in enumerate(fh, 1):
+                        surfaces.append((f"{path}:{lineno}", line))
     hits = scanner.scan(surfaces)
     for hit in hits:
         print(f"BRAND HIT {hit['mark']!r} at {hit['where']}")
