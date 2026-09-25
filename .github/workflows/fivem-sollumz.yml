@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# EXPERIMENTAL, manual only. Probes whether Sollumz (pinned commit, cloned at
+# run time, never vendored) enables under headless Blender 4.5, then runs the
+# fivem_sollumz stub profile. Not part of default CI.
+name: fivem-sollumz (experimental)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Sollumz headless probe (Blender 4.5)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Blender runtime libraries
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3 libxi6 \
+            libxkbcommon0 libsm6 libice6
+
+      - name: Download and verify Blender 4.5
+        run: |
+          set -euo pipefail
+          base="https://download.blender.org/release/Blender4.5/"
+          file=$(curl -fsSL "$base" | grep -oE "blender-4\.5\.[0-9]+-linux-x64\.tar\.xz" | sort -V | uniq | tail -1)
+          version=$(echo "$file" | grep -oE "4\.5\.[0-9]+")
+          curl -fSL --retry 3 -o "$RUNNER_TEMP/$file" "$base$file"
+          curl -fSL --retry 3 -o "$RUNNER_TEMP/blender.sha256" "${base}blender-${version}.sha256"
+          expected=$(grep " $file\$" "$RUNNER_TEMP/blender.sha256" | cut -d' ' -f1)
+          [ "$expected" = "$(sha256sum "$RUNNER_TEMP/$file" | cut -d' ' -f1)" ] || { echo "::error::SHA-256 mismatch"; exit 1; }
+          mkdir -p ~/blender
+          tar -xf "$RUNNER_TEMP/$file" -C ~/blender --strip-components=1
+          echo "GARU_BLENDER=$HOME/blender/blender" >> "$GITHUB_ENV"
+          echo "BLENDER_SERIES=4.5" >> "$GITHUB_ENV"
+
+      - name: Clone Sollumz at the pinned commit (not vendored)
+        run: |
+          set -euo pipefail
+          repo=$(grep '^sollumz_repo' profiles/fivem_sollumz/profile.toml | cut -d'"' -f2)
+          commit=$(grep '^sollumz_commit' profiles/fivem_sollumz/profile.toml | cut -d'"' -f2)
+          echo "Sollumz $repo @ $commit"
+          git clone --filter=blob:none "$repo" "$RUNNER_TEMP/sollumz"
+          git -C "$RUNNER_TEMP/sollumz" checkout --detach "$commit"
+          addons="$HOME/.config/blender/$BLENDER_SERIES/scripts/addons"
+          mkdir -p "$addons"
+          ln -s "$RUNNER_TEMP/sollumz" "$addons/sollumz"
+
+      - name: Probe headless add-on enable
+        run: |
+          set -euo pipefail
+          xvfb-run -a "$GARU_BLENDER" --background --python-expr "
+          import addon_utils, sys
+          mod = addon_utils.enable('sollumz', default_set=True, handle_error=None)
+          print('SOLLUMZ_ENABLED', bool(mod))
+          sys.exit(0 if mod else 1)
+          " 2>&1 | tee "$RUNNER_TEMP/probe.log"
+
+      - name: Run the fivem_sollumz stub profile (exit 3 = stub, expected)
+        run: |
+          set +e
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
+            run --kit stone-dungeon-wall-sampler --profile fivem_sollumz
+          code=$?
+          [ "$code" -eq 3 ] || { echo "::error::expected stub exit 3, got $code"; exit 1; }
+
+      - name: Upload probe log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sollumz-probe
+          path: ${{ runner.temp }}/probe.log
+          if-no-files-found: ignore

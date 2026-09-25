@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Headless Blender CI on ubuntu-latest, Blender 5.2 LTS and 4.5 LTS.
+# On every push: brand blocklist scan, test suite (including determinism),
+# then build and validate the sampler kit for unity, godot, gltf_web and
+# stl_print. JSON reports are uploaded when anything fails.
+# The Blender install steps are adapted from the author's
+# Blender-Developer-Tools blender-smoke.yml, plus SHA-256 verification and
+# caching.
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  blender:
+    name: Blender ${{ matrix.series }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        series: ["5.2", "4.5"]
+    env:
+      KIT: stone-dungeon-wall-sampler
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Blender runtime libraries
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3 libxi6 \
+            libxkbcommon0 libsm6 libice6
+
+      - name: Resolve latest Blender ${{ matrix.series }} release
+        id: resolve
+        run: |
+          set -euo pipefail
+          series="${{ matrix.series }}"
+          base="https://download.blender.org/release/Blender${series}/"
+          file=$(curl -fsSL "$base" | grep -oE "blender-${series}\.[0-9]+-linux-x64\.tar\.xz" | sort -V | uniq | tail -1)
+          if [ -z "$file" ]; then echo "::error::no linux-x64 build for Blender ${series}"; exit 1; fi
+          version=$(echo "$file" | grep -oE "${series}\.[0-9]+")
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Blender
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/blender-${{ steps.resolve.outputs.version }}
+          key: blender-${{ steps.resolve.outputs.version }}-linux-x64
+
+      - name: Download and verify Blender ${{ steps.resolve.outputs.version }}
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          base="${{ steps.resolve.outputs.base }}"
+          file="${{ steps.resolve.outputs.file }}"
+          version="${{ steps.resolve.outputs.version }}"
+          curl -fSL --retry 3 -o "$RUNNER_TEMP/$file" "$base$file"
+          curl -fSL --retry 3 -o "$RUNNER_TEMP/blender.sha256" "${base}blender-${version}.sha256"
+          expected=$(grep " $file\$" "$RUNNER_TEMP/blender.sha256" | cut -d' ' -f1)
+          actual=$(sha256sum "$RUNNER_TEMP/$file" | cut -d' ' -f1)
+          echo "expected $expected"; echo "actual   $actual"
+          [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "::error::SHA-256 mismatch"; exit 1; }
+          mkdir -p ~/blender-$version
+          tar -xf "$RUNNER_TEMP/$file" -C ~/blender-$version --strip-components=1
+
+      - name: Select Blender
+        run: |
+          set -euo pipefail
+          bl=~/blender-${{ steps.resolve.outputs.version }}/blender
+          "$bl" --version | head -1 | grep -q "Blender ${{ matrix.series }}\." \
+            || { echo "::error::version does not match series ${{ matrix.series }}"; exit 1; }
+          echo "GARU_BLENDER=$bl" >> "$GITHUB_ENV"
+          "$bl" --version | head -1
+
+      - name: Brand blocklist scan (repository)
+        run: |
+          set -euo pipefail
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
+            brandscan kits profiles README.md
+
+      - name: Test suite (unit, validator fixtures, external generator, determinism)
+        run: xvfb-run -a pwsh -NoProfile -File scripts/test.ps1
+
+      - name: Build and validate the sampler (unity, godot, gltf_web, stl_print)
+        run: |
+          xvfb-run -a pwsh -NoProfile -File scripts/build-kit.ps1 \
+            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print -Seed 1337
+
+      - name: Brand blocklist scan (build outputs)
+        run: |
+          set -euo pipefail
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
+            brandscan build dist
+
+      - name: Upload JSON reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-blender-${{ matrix.series }}
+          path: |
+            build/**/reports/*.json
+            build/**/export_manifest.json
+            build/**/previews/demo_scene.json
+          if-no-files-found: ignore
+
+      - name: Upload packages
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-blender-${{ matrix.series }}
+          path: dist/
+          retention-days: 7
