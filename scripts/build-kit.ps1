@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+#Requires -Version 7
 <#
 .SYNOPSIS
 Generate, validate, export, render previews and package a kit.
@@ -35,11 +36,14 @@ foreach ($prof in (Expand-Profiles $Profiles)) {
     if ($Seed -ge 0) { $blArgs += @("--seed", "$Seed") }
     if ($Fix) { $blArgs += "--fix" }
     foreach ($path in (Split-List $GeneratorPath)) { $blArgs += @("--generator-path", $path) }
+    # Remove the previous run's summary first, so a run that stops before
+    # validation never reports stale pass/fail counts.
+    $summaryPath = Join-Path $BuildDir "$Kit/$prof/reports/summary.json"
+    if (Test-Path -LiteralPath $summaryPath) { Remove-Item -LiteralPath $summaryPath -Force }
     $code = Invoke-Blender $exe $blArgs
     $status = switch ($code) { 0 { "ok" } 1 { "FAILED" } 3 { "stub (nothing exported)" } default { "ERROR ($code)" } }
-    $summaryPath = Join-Path $BuildDir "$Kit/$prof/reports/summary.json"
     $pass = $fail = ""
-    if (Test-Path $summaryPath) {
+    if ($code -in 0, 1 -and (Test-Path -LiteralPath $summaryPath)) {
         $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
         $pass = [int]($summary.checks.PSObject.Properties.Value | Measure-Object -Property pass -Sum).Sum
         $fail = [int]($summary.checks.PSObject.Properties.Value | Measure-Object -Property fail -Sum).Sum
