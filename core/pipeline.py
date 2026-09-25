@@ -84,6 +84,18 @@ def _scale_to_profile(objects, cell):
         obj.location = obj.location * cell
 
 
+def _default_collider(obj, kind, name):
+    """One collider part for a LOD0 object: its convex hull, or for
+    collider.type = "box" its world-space bounding box."""
+    if kind == "box":
+        mw = obj.matrix_world
+        pts = [mw @ v.co for v in obj.data.vertices]
+        lo = tuple(min(p[i] for p in pts) for i in range(3))
+        hi = tuple(max(p[i] for p in pts) for i in range(3))
+        return collider_mod.box(lo, hi, name, obj.users_collection[0] if obj.users_collection else None)
+    return collider_mod.hull_of_object(obj, name)
+
+
 def generate(contract, module, seed, piece_ids=None):
     """Run the generator and complete every piece set. Returns a KitScene."""
     reset_scene(contract["profile"].get("export", {}).get("scene_unit_system", "METRIC"))
@@ -109,7 +121,8 @@ def generate(contract, module, seed, piece_ids=None):
                 if hasattr(module, "build_colliders"):
                     ps.colliders = list(module.build_colliders(contract, obj))
                 else:
-                    part = collider_mod.hull_of_object(obj, api.collider_name(contract, obj.name, 0))
+                    part = _default_collider(obj, contract["collider"]["type"],
+                                             api.collider_name(contract, obj.name, 0))
                     api.tag(part, ps.piece, ps.variant, api.ROLE_COLLIDER)
                     ps.colliders = [part]
             canonical.canonicalize_objects(ps.lods + ps.colliders)

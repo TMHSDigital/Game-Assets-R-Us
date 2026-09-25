@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from core.contract import load_contract, resolve
+from core.contract.resolve import freeze, thaw
 from core.exporters import export_scene
 from core.generators import get, load_module
 from core import pipeline
@@ -42,6 +43,21 @@ class ExternalGeneratorPipeline(unittest.TestCase):
     def test_stl_print_without_clips(self):
         manifest = self._run("stl_print")
         self.assertEqual([f["name"] for f in manifest["files"]], ["SM_DEMO_plinth_clean.stl"])
+
+    def test_box_collider(self):
+        info = get("demo-external", extra_paths=[EXTERNAL])
+        data = thaw(resolve(load_contract(info.contract_path), "gltf_web"))
+        data["collider"]["type"] = "box"
+        scene = pipeline.generate(freeze(data), load_module(info), 7)
+        ps = scene.sets[0]
+        self.assertEqual(len(ps.colliders), 1)
+        col = ps.colliders[0]
+        self.assertEqual(len(col.data.vertices), 8)  # a triangulated box
+
+        def bounds(obj):
+            pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+            return [round(f(p[i] for p in pts), 5) for f in (min, max) for i in range(3)]
+        self.assertEqual(bounds(col), bounds(ps.lod0))
 
 
 if __name__ == "__main__":
