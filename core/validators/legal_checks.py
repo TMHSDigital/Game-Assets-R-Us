@@ -39,6 +39,13 @@ def tokens(text):
     return [t for t in re.split(r"[^A-Za-z0-9]+", text.lower()) if t]
 
 
+def camel_parts(text):
+    """Sub-tokens of each separate word: "McDonaldsSign lamp" gives
+    [["mc", "donalds", "sign"], ["lamp"]]. Joining is only allowed inside one
+    word, so "for d" in code never reads as "ford"."""
+    return [tokens(word) for word in re.split(r"[^A-Za-z0-9]+", str(text)) if word]
+
+
 class BrandScanner:
     def __init__(self, blocklist=BLOCKLIST, allowlist=ALLOWLIST):
         self.marks = []
@@ -57,8 +64,9 @@ class BrandScanner:
             n = len(parts)
             if joined in toks or any(toks[i:i + n] == parts for i in range(len(toks) - n + 1)):
                 found.append(entry)
-            elif n == 1 and any("".join(toks[i:j]) == joined
-                                for i in range(len(toks)) for j in range(i + 2, min(len(toks), i + 4) + 1)):
+            elif any("".join(parts_[i:j]) == joined
+                     for parts_ in camel_parts(text)
+                     for i in range(len(parts_)) for j in range(i + 2, len(parts_) + 1)):
                 found.append(entry)
         return found
 

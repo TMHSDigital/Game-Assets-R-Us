@@ -170,6 +170,8 @@ class LegalCheckFixtures(unittest.TestCase):
         self.assertEqual(scanner.hits("burger_king_crate"), ["burger king"])
         self.assertEqual(scanner.hits("BurgerKing"), ["burger king"])
         self.assertEqual(scanner.hits("fordable_bridge"), [])
+        self.assertEqual(scanner.hits("for d, _, fs in os.walk(out)"), [])
+        self.assertEqual(scanner.hits("CocaColaCrate"), ["coca cola", "cocacola"])
         self.assertEqual(scanner.hits("SM_SDW_wall_straight_clean"), [])
 
     def test_brand_in_material_fails(self):
