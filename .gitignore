@@ -9,3 +9,4 @@ __pycache__/
 # Blender autosaves and backups
 *.blend1
 *.blend2
+CLAUDE.md
