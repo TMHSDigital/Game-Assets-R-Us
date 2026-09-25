@@ -74,6 +74,14 @@ def cmd_run(args):
         from core.exporters import stubs
         return stubs.run(resolved)
 
+    if profile.get("exporter") == "sollumz":
+        from core import fivem
+        try:
+            fivem.ensure_sollumz(profile)
+        except fivem.SollumzUnavailable as exc:
+            print(f"UNAVAILABLE profile '{profile['name']}' ({profile['status']}): {exc}")
+            return 3
+
     seed = args.seed if args.seed is not None else contract["kit"]["default_seed"]
     out_dir = os.path.join(args.build_dir, contract["kit"]["id"], args.profile)
     _fresh_dir(out_dir)

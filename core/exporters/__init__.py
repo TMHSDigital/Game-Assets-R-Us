@@ -86,11 +86,35 @@ class _Renamed:
             obj.data.name = mesh
 
 
+def _export_sollumz(scene, out_dir, exp_dir):
+    from .. import fivem
+    contract = scene.contract
+    files, results, expected = fivem.export(scene, exp_dir)
+    memory = fivem.memory_report(expected, contract["profile"], out_dir)
+    manifest = {
+        "kit": contract["kit"]["id"],
+        "kit_version": contract["kit"]["version"],
+        "profile": contract["profile"]["name"],
+        "seed": scene.seed,
+        "blender": bpy.app.version_string,
+        "exporter_settings": {"sollumz_commit": contract["profile"]["sollumz_commit"],
+                              "shader": contract["profile"]["shader"]},
+        "streamed_memory_over_warning": memory["any_over_warning"],
+        "files": [{"name": f, "sha256": sha256(os.path.join(exp_dir, f)),
+                   "bytes": os.path.getsize(os.path.join(exp_dir, f)),
+                   "objects": {}, "roundtrip": results[f]} for f in files],
+    }
+    return manifest, results
+
+
 def export_scene(scene, out_dir):
     contract = scene.contract
     profile = contract["profile"]
     exp_dir = os.path.join(out_dir, "exports")
     os.makedirs(exp_dir, exist_ok=True)
+    if profile.get("exporter") == "sollumz":
+        manifest, results = _export_sollumz(scene, out_dir, exp_dir)
+        return _finish(scene, out_dir, exp_dir, manifest, results)
     jobs = mesh_jobs(scene) if profile["kind"] == "mesh" else print_jobs(scene)
     writer = {"fbx": export_fbx, "glb": export_glb, "stl": export_stl}[profile["format"]]
 
@@ -118,17 +142,21 @@ def export_scene(scene, out_dir):
                    "bytes": os.path.getsize(os.path.join(exp_dir, f)),
                    "objects": expected[f], "roundtrip": results[f]} for f in files],
     }
+    return _finish(scene, out_dir, exp_dir, manifest, results)
+
+
+def _finish(scene, out_dir, exp_dir, manifest, results):
     # Baked textures live in exports/textures/; they are hashed like every
-    # other export (the model files that use them were round-tripped above).
+    # other export (the model files that use them were round-tripped).
     for path in scene.textures:
         rel = os.path.relpath(path, exp_dir).replace(os.sep, "/")
         manifest["files"].append({"name": rel, "sha256": sha256(path), "bytes": os.path.getsize(path),
                                   "objects": {}, "roundtrip": {"passed": True, "problems": [], "objects": 0,
                                                                "kind": "texture"}})
-    manifest["roundtrip_passed"] = all(r["passed"] for r in results.values())
+    manifest["roundtrip_passed"] = bool(results) and all(r["passed"] for r in results.values())
     write_json(os.path.join(out_dir, "export_manifest.json"), manifest)
     failed = [f for f, r in results.items() if not r["passed"]]
     for f in failed:
         print(f"ROUNDTRIP FAIL {f}: {results[f]['problems']}")
-    print(f"ROUNDTRIP {len(files) - len(failed)}/{len(files)} files re-imported and matched")
+    print(f"ROUNDTRIP {len(results) - len(failed)}/{len(results)} files re-imported and matched")
     return manifest

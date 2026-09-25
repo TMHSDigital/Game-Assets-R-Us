@@ -2,7 +2,7 @@
 # EXPERIMENTAL, manual only, Blender 4.5 only. Installs Sollumz at the pinned
 # commit (git archive at run time, never vendored) plus the szio wheel it
 # pins, into an isolated Blender user folder, then runs the headless probe
-# (profiles/fivem_sollumz/probe.py) and the fivem_sollumz stub profile.
+# (profiles/fivem_sollumz/probe.py), the fivem_sollumz profile and its test.
 name: fivem-sollumz (experimental)
 
 on:
@@ -67,18 +67,27 @@ jobs:
           xvfb-run -a "$GARU_BLENDER" --background --factory-startup \
             --python profiles/fivem_sollumz/probe.py -- "$RUNNER_TEMP/probe_out" "$RUNNER_TEMP/szio_site"
 
-      - name: Run the fivem_sollumz stub profile (exit 3 = stub, expected)
+      - name: Build, validate, export and verify the fivem_sollumz profile
         run: |
-          set +e
-          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
-            run --kit stone-dungeon-wall-sampler --profile fivem_sollumz
-          code=$?
-          [ "$code" -eq 3 ] || { echo "::error::expected stub exit 3, got $code"; exit 1; }
+          set -euo pipefail
+          echo "GARU_SZIO_SITE=$RUNNER_TEMP/szio_site" >> "$GITHUB_ENV"
+          GARU_SZIO_SITE="$RUNNER_TEMP/szio_site" xvfb-run -a "$GARU_BLENDER" --background --factory-startup \
+            --python core/cli.py -- run --kit stone-dungeon-wall-sampler --profile fivem_sollumz
+
+      - name: FiveM determinism and Sollumz re-import test
+        run: |
+          set -euo pipefail
+          GARU_BLENDER_45="$GARU_BLENDER" GARU_SOLLUMZ_USER="$BLENDER_USER_RESOURCES" \
+            xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python tests/run_tests.py -- --pattern test_fivem.py
 
       - name: Upload probe results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sollumz-probe
-          path: ${{ runner.temp }}/probe_out
+          path: |
+            ${{ runner.temp }}/probe_out
+            build/**/fivem_sollumz/export_manifest.json
+            build/**/fivem_sollumz/streamed_memory.json
+            dist/fivem_sollumz/
           if-no-files-found: ignore

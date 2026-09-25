@@ -27,21 +27,29 @@ sampler wall, converted it to a drawable, exported it under
 `blender --background` and re-imported it at 2.0 x 0.5 x 4.0 m. The manual
 workflow `.github/workflows/fivem-sollumz.yml` repeats this on Linux.
 
-What the probe showed a real exporter must handle:
-- Install Sollumz from `git archive` of the pinned commit (a plain checkout
-  keeps a `$Format` placeholder that Blender rejects as a version), plus the
-  hash-pinned `szio` wheel Sollumz requires (pinned in the profile).
-- Assign Sollumz shader materials directly: its material converter crashes
-  on our procedural bump node tree.
-- Name UV maps `UVMap 0`, `UVMap 1` and add a `Color 1` color attribute, as
-  Sollumz shaders expect.
-- Output is CodeWalker XML (`.ydr.xml`, in `gen8/` and `gen9/`). Binary
-  `.ydr` needs PyMateria, which is proprietary (CFX license) and must not be
-  used or shipped here; converting XML to binary is left to the user's
-  CodeWalker.
-- Still open: embedded collision, LOD distances, archetype (`.ytyp`)
-  output, the 16 MiB streamed memory estimate, and `target_builds`.
-- Sollumz is GPL-3.0-or-later and is never vendored here.
+The exporter now exists (`core/fivem.py`, experimental): drawables with
+High/Medium/Low LODs and LOD distances, normal.sps materials naming the
+baked textures, embedded BVH collision, CodeWalker XML for gen8 and gen9,
+Sollumz re-import verification, a streamed-memory estimate, and
+byte-identical rebuilds (`tests/test_fivem.py`, verified 2026-09-25 on
+Blender 4.5.14).
+
+Local setup (what the workflow does):
+1. `git archive` the pinned Sollumz commit (a plain checkout keeps a
+   `$Format` version placeholder that Blender rejects) into
+   `<user>/extensions/user_default/sollumz_dev`.
+2. `pip install --target <site> --require-hashes` the szio version and hash
+   pinned in the profile.
+3. Run Blender 4.5 with `BLENDER_USER_RESOURCES=<user>` and
+   `GARU_SZIO_SITE=<site>`.
+
+Still open:
+- in-game testing in FiveM, and building the .ytd from the shipped PNGs
+- binary `.ydr` needs PyMateria, which is proprietary (CFX license) and must
+  not be used or shipped here; conversion is left to the user's CodeWalker
+- archetype (`.ytyp`) output and `target_builds`
+- the memory estimate covers geometry only, not textures
+- Sollumz is GPL-3.0-or-later and is never vendored here
 
 ## Clip-standard compatibility (stl_print)
 `garu_dogbone_v1` is this project's own design. Compatibility with existing

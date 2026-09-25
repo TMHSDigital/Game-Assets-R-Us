@@ -8,7 +8,7 @@
 | gltf_web | working | GLB, no Draco | glTF Y up, meters | separate files | `<name>_colliders.glb` |
 | stl_print | working | binary STL | millimeters, base down | none | none |
 | roblox | experimental | FBX, textures embedded | studs (Unit System None, FBX Units Scale) | LOD0 only (Roblox builds LODs) | none (set CollisionFidelity) |
-| fivem_sollumz | experimental stub | (YDR) | meters | stub | stub |
+| fivem_sollumz | experimental, Blender 4.5 + Sollumz | CodeWalker XML (.ydr.xml, gen8 and gen9) | meters | High/Medium/Low LOD levels with LOD distances | embedded bound composite (BVH, STONE) |
 
 Every export is verified by importing it back into Blender and comparing
 object names, triangle counts and per-axis sizes (`export_manifest.json`).
@@ -51,10 +51,17 @@ when it has been verified against the Roblox documentation (source URL
 recorded); verified limits are enforced at export, unverified ones never.
 `tests/test_roblox.py` checks every FBX against them.
 
-`fivem_sollumz` is EXPERIMENTAL: schema fields (archetype prefix, embedded
-collision, LOD distances, 16 MiB streamed memory warning, target builds), a
-stub exporter, Blender 4.5 only, and a pinned Sollumz commit and szio wheel.
-Sollumz is never vendored; the manual workflow
-`.github/workflows/fivem-sollumz.yml` installs it at run time and runs
-`profiles/fivem_sollumz/probe.py`, which showed headless export works (see
-docs/TODO.md for what a real exporter still needs).
+`fivem_sollumz` is EXPERIMENTAL, Blender 4.5 only, and needs the pinned
+Sollumz commit and szio wheel installed (never vendored); without them it
+exits 3 with instructions. `core/fivem.py` turns each piece variant into a
+Sollumz drawable named `<archetype_prefix><piece>_<variant>`: LOD0 to LOD2
+as the High, Medium and Low levels with the profile's LOD distances,
+`normal.sps` materials naming the baked textures (lowercase, as the game
+expects; the PNGs ship in textures/ for building a .ytd in CodeWalker), and
+the convex collider parts as one embedded bound composite (BVH, collision
+material STONE). Sollumz writes CodeWalker XML in `gen8/` and `gen9/`;
+every file is re-imported through Sollumz and compared (size, triangles,
+LOD levels, collision). A streamed-memory estimate (geometry only) is
+written to `streamed_memory.json` and warns above 16 MiB.
+`tests/test_fivem.py` runs where Sollumz is configured, and the manual
+workflow `.github/workflows/fivem-sollumz.yml` installs it and runs it.
