@@ -1,0 +1,11 @@
+# Build outputs
+build/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# Blender autosaves and backups
+*.blend1
+*.blend2
