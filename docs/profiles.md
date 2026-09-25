@@ -47,6 +47,8 @@ Roblox documentation.
 
 `fivem_sollumz` is EXPERIMENTAL: schema fields (archetype prefix, embedded
 collision, LOD distances, 16 MiB streamed memory warning, target builds), a
-stub exporter, Blender 4.5 only, and a pinned Sollumz commit. Sollumz is
-never vendored; the manual workflow `.github/workflows/fivem-sollumz.yml`
-clones it at run time to probe whether it runs headless.
+stub exporter, Blender 4.5 only, and a pinned Sollumz commit and szio wheel.
+Sollumz is never vendored; the manual workflow
+`.github/workflows/fivem-sollumz.yml` installs it at run time and runs
+`profiles/fivem_sollumz/probe.py`, which showed headless export works (see
+docs/TODO.md for what a real exporter still needs).

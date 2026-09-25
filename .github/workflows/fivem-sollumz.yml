@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# EXPERIMENTAL, manual only. Probes whether Sollumz (pinned commit, cloned at
-# run time, never vendored) enables under headless Blender 4.5, then runs the
-# fivem_sollumz stub profile. Not part of default CI.
+# EXPERIMENTAL, manual only, Blender 4.5 only. Installs Sollumz at the pinned
+# commit (git archive at run time, never vendored) plus the szio wheel it
+# pins, into an isolated Blender user folder, then runs the headless probe
+# (profiles/fivem_sollumz/probe.py) and the fivem_sollumz stub profile.
 name: fivem-sollumz (experimental)
 
 on:
@@ -39,29 +40,32 @@ jobs:
           mkdir -p ~/blender
           tar -xf "$RUNNER_TEMP/$file" -C ~/blender --strip-components=1
           echo "GARU_BLENDER=$HOME/blender/blender" >> "$GITHUB_ENV"
-          echo "BLENDER_SERIES=4.5" >> "$GITHUB_ENV"
 
-      - name: Clone Sollumz at the pinned commit (not vendored)
+      - name: Install pinned Sollumz and szio into an isolated user folder
         run: |
           set -euo pipefail
-          repo=$(grep '^sollumz_repo' profiles/fivem_sollumz/profile.toml | cut -d'"' -f2)
-          commit=$(grep '^sollumz_commit' profiles/fivem_sollumz/profile.toml | cut -d'"' -f2)
-          echo "Sollumz $repo @ $commit"
-          git clone --filter=blob:none "$repo" "$RUNNER_TEMP/sollumz"
-          git -C "$RUNNER_TEMP/sollumz" checkout --detach "$commit"
-          addons="$HOME/.config/blender/$BLENDER_SERIES/scripts/addons"
-          mkdir -p "$addons"
-          ln -s "$RUNNER_TEMP/sollumz" "$addons/sollumz"
+          p=profiles/fivem_sollumz/profile.toml
+          val() { grep "^$1 " "$p" | cut -d'"' -f2; }
+          echo "Sollumz $(val sollumz_repo) @ $(val sollumz_commit); szio $(val szio_version)"
+          git clone --filter=blob:none "$(val sollumz_repo)" "$RUNNER_TEMP/sollumz"
+          # git archive fills in the manifest version placeholder; a plain
+          # checkout is rejected by Blender as an invalid version.
+          git -C "$RUNNER_TEMP/sollumz" archive --format=tar "$(val sollumz_commit)" -o "$RUNNER_TEMP/sollumz.tar"
+          user="$RUNNER_TEMP/blender-user"
+          mkdir -p "$user/extensions/user_default/sollumz_dev"
+          tar -xf "$RUNNER_TEMP/sollumz.tar" -C "$user/extensions/user_default/sollumz_dev"
+          echo "szio==$(val szio_version) --hash=sha256:$(val szio_sha256)" > "$RUNNER_TEMP/szio.txt"
+          py=$(find ~/blender -path "*python/bin/python3*" -type f | head -1)
+          "$py" -m ensurepip --upgrade >/dev/null 2>&1 || true
+          "$py" -m pip install --no-deps --require-hashes --only-binary=:all: \
+            --target "$RUNNER_TEMP/szio_site" -r "$RUNNER_TEMP/szio.txt"
+          echo "BLENDER_USER_RESOURCES=$user" >> "$GITHUB_ENV"
 
-      - name: Probe headless add-on enable
+      - name: Headless probe (build, convert, export, re-import)
         run: |
           set -euo pipefail
-          xvfb-run -a "$GARU_BLENDER" --background --python-expr "
-          import addon_utils, sys
-          mod = addon_utils.enable('sollumz', default_set=True, handle_error=None)
-          print('SOLLUMZ_ENABLED', bool(mod))
-          sys.exit(0 if mod else 1)
-          " 2>&1 | tee "$RUNNER_TEMP/probe.log"
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup \
+            --python profiles/fivem_sollumz/probe.py -- "$RUNNER_TEMP/probe_out" "$RUNNER_TEMP/szio_site"
 
       - name: Run the fivem_sollumz stub profile (exit 3 = stub, expected)
         run: |
@@ -71,10 +75,10 @@ jobs:
           code=$?
           [ "$code" -eq 3 ] || { echo "::error::expected stub exit 3, got $code"; exit 1; }
 
-      - name: Upload probe log
+      - name: Upload probe results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sollumz-probe
-          path: ${{ runner.temp }}/probe.log
+          path: ${{ runner.temp }}/probe_out
           if-no-files-found: ignore

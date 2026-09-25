@@ -11,14 +11,11 @@ import importlib.util
 EXIT_STUB = 3
 
 
-def _sollumz_present():
-    for name in ("bl_ext.user_default.sollumz", "sollumz"):
-        try:
-            if importlib.util.find_spec(name):
-                return True
-        except ModuleNotFoundError:
-            continue
-    return False
+def _sollumz_present(addon):
+    try:
+        return importlib.util.find_spec(addon) is not None
+    except ModuleNotFoundError:
+        return False
 
 
 def run(contract):
@@ -34,6 +31,7 @@ def run(contract):
         print(f"STUB   requires Blender {profile['blender_version']} and Sollumz "
               f"{profile['sollumz_repo']} at {profile['sollumz_commit']} (not vendored)")
         print(f"STUB   streamed memory warning threshold: {profile['streamed_memory_warn_mib']} MiB")
-        print(f"STUB   Sollumz importable in this Blender: {_sollumz_present()}")
-        print("STUB   see .github/workflows/fivem-sollumz.yml and docs/TODO.md (headless feasibility).")
+        print(f"STUB   Sollumz installed in this Blender: {_sollumz_present(profile['sollumz_addon'])}")
+        print("STUB   headless export is feasible (profiles/fivem_sollumz/probe.py); the exporter is not "
+              "implemented yet, see docs/TODO.md.")
     return EXIT_STUB

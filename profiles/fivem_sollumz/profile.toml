@@ -2,9 +2,16 @@
 # FiveM via Sollumz: EXPERIMENTAL stub. Disabled in default CI; see
 # .github/workflows/fivem-sollumz.yml (manual, Blender 4.5 only).
 #
-# Sollumz is never vendored into this repository. The workflow checks it out
-# at the pinned commit below into a temporary directory.
-# TODO: confirm that Sollumz can export headless (blender --background).
+# Sollumz is never vendored into this repository. The workflow installs the
+# pinned commit below (git archive, so the manifest version is filled in)
+# into an isolated Blender user folder, plus the szio wheel Sollumz itself
+# pins, and runs profiles/fivem_sollumz/probe.py.
+#
+# Headless probe result (2026-09-25, Blender 4.5.14, commit below): Sollumz
+# enables, converts and exports under blender --background and re-imports at
+# the original size. Output is CodeWalker XML (.ydr.xml) in gen8/ and gen9/;
+# binary .ydr needs PyMateria, which is proprietary and never used here.
+# See docs/TODO.md for what a real exporter still needs.
 name = "fivem_sollumz"
 kind = "stub"
 status = "experimental"
@@ -16,6 +23,10 @@ format = "ydr"
 blender_version = "4.5"
 sollumz_repo = "https://github.com/Sollumz/Sollumz"
 sollumz_commit = "f7fe61620bd32039e709bb137a3896b3b7c44e0b"
+sollumz_addon = "bl_ext.user_default.sollumz_dev"
+# Pinned by Sollumz itself (dependencies.py at the commit above).
+szio_version = "1.4.0.dev0"
+szio_sha256 = "acdd5b63960c713b055a955132d57a9c63e54f7ff1afcb4770a47ea13ef39ab8"
 archetype_prefix = "garu_sdw_"
 embedded_collision = true
 lod_distances = [60.0, 120.0, 240.0]

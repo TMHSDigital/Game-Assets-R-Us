@@ -11,14 +11,28 @@ Roblox documentation and record value, source URL and `verified = true`:
 Also confirm the stud-to-meter relationship; `cell_size = 8.0` studs is a
 design choice, not a documented value.
 
-## Sollumz headless feasibility (profile: fivem_sollumz, experimental)
-- Run `.github/workflows/fivem-sollumz.yml` (manual) to find out whether
-  Sollumz enables and exports under `blender --background` on 4.5.
-- Sollumz commit pinned: see `profiles/fivem_sollumz/profile.toml`. Sollumz
-  is GPL-3.0 and is never vendored here.
-- Fill in `target_builds` once the target game builds are confirmed.
-- Streamed memory estimate against the 16 MiB warning threshold is not
-  implemented.
+## FiveM via Sollumz (profile: fivem_sollumz, experimental)
+Headless feasibility is established. On 2026-09-25, with Blender 4.5.14 and
+Sollumz at the pinned commit, `profiles/fivem_sollumz/probe.py` built the
+sampler wall, converted it to a drawable, exported it under
+`blender --background` and re-imported it at 2.0 x 0.5 x 4.0 m. The manual
+workflow `.github/workflows/fivem-sollumz.yml` repeats this on Linux.
+
+What the probe showed a real exporter must handle:
+- Install Sollumz from `git archive` of the pinned commit (a plain checkout
+  keeps a `$Format` placeholder that Blender rejects as a version), plus the
+  hash-pinned `szio` wheel Sollumz requires (pinned in the profile).
+- Assign Sollumz shader materials directly: its material converter crashes
+  on our procedural bump node tree.
+- Name UV maps `UVMap 0`, `UVMap 1` and add a `Color 1` color attribute, as
+  Sollumz shaders expect.
+- Output is CodeWalker XML (`.ydr.xml`, in `gen8/` and `gen9/`). Binary
+  `.ydr` needs PyMateria, which is proprietary (CFX license) and must not be
+  used or shipped here; converting XML to binary is left to the user's
+  CodeWalker.
+- Still open: embedded collision, LOD distances, archetype (`.ytyp`)
+  output, the 16 MiB streamed memory estimate, and `target_builds`.
+- Sollumz is GPL-3.0-or-later and is never vendored here.
 
 ## Clip-standard compatibility (stl_print)
 `garu_dogbone_v1` is this project's own design. Compatibility with existing
