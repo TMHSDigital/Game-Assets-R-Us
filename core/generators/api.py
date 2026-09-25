@@ -26,7 +26,8 @@ Optional module hooks (the core supplies defaults when absent):
 
     build_colliders(contract, obj) -> list[bpy.types.Object]
         Convex collider parts for one LOD0 object, garu_role = "collider".
-        Default: one convex hull of the LOD0 mesh.
+        Default: one convex hull of the LOD0 mesh, or its bounding box when
+        the kit sets collider.type = "box".
 
 The core then adds UVs it owns (lightmap), LODs, colliders, profile scale,
 print bases and sockets, so every generator gets identical pipeline rules.
