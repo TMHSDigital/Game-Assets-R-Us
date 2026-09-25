@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+#Requires -Version 7
 <#
 .SYNOPSIS
 Generate and validate a kit without exporting. Reports go to build/<kit>/<profile>/reports.

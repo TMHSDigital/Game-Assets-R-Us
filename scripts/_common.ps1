@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+#Requires -Version 7
 # Shared helpers for the scripts in this folder. Dot-source it:  . "$PSScriptRoot/_common.ps1"
 
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path

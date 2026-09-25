@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+#Requires -Version 7
 <#
 .SYNOPSIS
 Delete build/ and dist/ inside this repository (both are gitignored).
