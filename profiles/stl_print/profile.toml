@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 3D-printable terrain: one binary STL per piece variant, in millimeters, on a
+# base with the parametric dogbone socket, rotated into print orientation,
+# plus a clip STL and a per-kit print settings sheet. Print rules (min wall,
+# overhang, build plate, socket) come from the kit contract [print] block.
+name = "stl_print"
+kind = "print"
+status = "working"
+enabled_in_ci = true
+experimental = false
+cell_size = 25.4
+units = "mm"
+format = "stl"
+ascii = false

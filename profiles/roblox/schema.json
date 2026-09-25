@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-License-Identifier: GPL-3.0-or-later",
+  "title": "Profile overlay: roblox",
+  "type": "object",
+  "required": ["name", "kind", "status", "enabled_in_ci", "experimental", "cell_size", "units", "format", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"const": "roblox"},
+    "kind": {"const": "stub"},
+    "status": {"enum": ["working", "stub", "experimental"]},
+    "enabled_in_ci": {"type": "boolean"},
+    "experimental": {"type": "boolean"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "units": {"enum": ["m", "cm", "mm", "studs"]},
+    "format": {"enum": ["fbx", "obj", "glb"]},
+    "limits": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["source", "verified"],
+        "additionalProperties": false,
+        "properties": {
+          "value": {"type": "number", "exclusiveMinimum": 0},
+          "source": {"type": "string", "pattern": "^https://create\\.roblox\\.com/"},
+          "verified": {"type": "boolean"}
+        },
+        "if": {"properties": {"verified": {"const": true}}},
+        "then": {"required": ["value"]},
+        "else": {"not": {"required": ["value"]}}
+      }
+    }
+  }
+}

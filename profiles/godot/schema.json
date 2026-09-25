@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-License-Identifier: GPL-3.0-or-later",
+  "title": "Profile overlay: godot",
+  "type": "object",
+  "required": ["name", "kind", "status", "enabled_in_ci", "experimental", "cell_size", "units", "format", "lod_mode", "lod0_suffix", "collider_mode", "collider_pattern", "export"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"const": "godot"},
+    "kind": {"const": "mesh"},
+    "status": {"enum": ["working", "stub", "experimental"]},
+    "enabled_in_ci": {"type": "boolean"},
+    "experimental": {"type": "boolean"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "units": {"enum": ["m", "cm", "mm", "studs"]},
+    "lod_mode": {"enum": ["embedded", "separate_files"]},
+    "lod0_suffix": {"type": "string"},
+    "collider_mode": {"enum": ["embedded", "separate_files", "omit"]},
+    "collider_pattern": {"type": "string", "pattern": "\\{name\\}.*\\{index"},    "format": {"const": "glb"},
+    "export": {
+      "type": "object",
+      "required": ["export_yup"],
+      "additionalProperties": false,
+      "properties": {"export_yup": {"const": true}}
+    }
+  }
+}

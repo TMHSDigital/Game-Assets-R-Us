@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# FiveM via Sollumz: EXPERIMENTAL stub. Disabled in default CI; see
+# .github/workflows/fivem-sollumz.yml (manual, Blender 4.5 only).
+#
+# Sollumz is never vendored into this repository. The workflow checks it out
+# at the pinned commit below into a temporary directory.
+# TODO: confirm that Sollumz can export headless (blender --background).
+name = "fivem_sollumz"
+kind = "stub"
+status = "experimental"
+enabled_in_ci = false
+experimental = true
+cell_size = 2.0
+units = "m"
+format = "ydr"
+blender_version = "4.5"
+sollumz_repo = "https://github.com/Sollumz/Sollumz"
+sollumz_commit = "f7fe61620bd32039e709bb137a3896b3b7c44e0b"
+archetype_prefix = "garu_sdw_"
+embedded_collision = true
+lod_distances = [60.0, 120.0, 240.0]
+streamed_memory_warn_mib = 16
+# TODO: fill in the game build numbers to target once they are confirmed.
+target_builds = []

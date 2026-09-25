@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-License-Identifier: GPL-3.0-or-later",
+  "title": "Profile overlay: stl_print",
+  "type": "object",
+  "required": ["name", "kind", "status", "enabled_in_ci", "experimental", "cell_size", "units", "format", "ascii"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"const": "stl_print"},
+    "kind": {"const": "print"},
+    "status": {"enum": ["working", "stub", "experimental"]},
+    "enabled_in_ci": {"type": "boolean"},
+    "experimental": {"type": "boolean"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "units": {"enum": ["m", "cm", "mm", "studs"]},
+    "format": {"const": "stl"},
+    "ascii": {"type": "boolean"}
+  }
+}

@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: CC0-1.0
+# Kit contract for the public CC0 sampler. Validated against
+# core/contract/base.schema.json plus profiles/<name>/schema.json.
+# All sizes are in abstract grid cells; each export profile sets the real
+# size of one cell (game: 2.0 m, print: 25.4 mm).
+schema_version = 1
+
+[kit]
+id = "stone-dungeon-wall-sampler"
+name = "Stone Dungeon Wall Sampler"
+version = "0.1.0"
+prefix = "SDW"
+generator = "stone-dungeon-wall-sampler"
+default_seed = 1337
+description = "Five modular dungeon pieces in three variants, CC0."
+
+[grid]
+height_cells = 2.0
+wall_thickness_cells = 0.25
+snap_tolerance_cells = 0.0001
+
+[style]
+# One bevel language for the whole kit: a single-segment chamfer. One
+# segment keeps every chamfer at 45 degrees, which prints without supports.
+bevel_width_cells = 0.02
+bevel_segments = 1
+course_height_cells = 0.25
+block_length_cells = 0.5
+mortar_gap_cells = 0.012
+mortar_depth_cells = 0.008
+naming_pattern = "SM_{prefix}_{piece}_{variant}"
+lod_pattern = "{name}_LOD{n}"
+collider_pattern = "UCX_{name}_{index:02d}"
+pivot_rule = "base_min_corner"
+variants = ["clean", "cracked", "ruined"]
+
+[materials]
+max_slots_per_piece = 2
+
+[[materials.palette]]
+slot = "stone"
+kind = "procedural"
+base_color = [0.42, 0.40, 0.37]
+base_color_2 = [0.33, 0.31, 0.29]
+roughness = 0.85
+noise_scale = 6.0
+
+[[materials.palette]]
+slot = "mortar"
+kind = "procedural"
+base_color = [0.24, 0.23, 0.21]
+roughness = 0.95
+
+[uv]
+tiling_channel = "UVMap"
+lightmap_channel = "Lightmap"
+# 0.5 UV units per cell: a 1024 px tiling texture gives 512 px per cell.
+tiling_scale_per_cell = 0.5
+lightmap_margin = 0.02
+
+[texel_density]
+texture_size = 1024
+min_px_per_cell = 256
+max_px_per_cell = 1024
+coverage = 0.95
+
+[collider]
+type = "convex"
+max_faces_per_part = 255
+max_parts = 4
+
+[[pieces]]
+id = "wall_straight"
+footprint_cells = [1.0, 0.25]
+height_cells = 2.0
+lod_tris = [3000, 1200, 400]
+seams = ["x0", "x1"]
+seam_profile = "wall"
+print_base_cells = [1, 1]
+
+[[pieces]]
+id = "corner_outer"
+footprint_cells = [1.0, 1.0]
+height_cells = 2.0
+lod_tris = [5000, 2000, 700]
+seams = ["x1", "y1"]
+seam_profile = "wall"
+print_base_cells = [1, 1]
+
+[[pieces]]
+id = "doorway"
+footprint_cells = [1.0, 0.25]
+height_cells = 2.0
+lod_tris = [3000, 1200, 400]
+seams = ["x0", "x1"]
+seam_profile = "wall"
+print_base_cells = [1, 1]
+
+[[pieces]]
+id = "floor_2x2"
+footprint_cells = [2.0, 2.0]
+height_cells = 0.1
+lod_tris = [3000, 1200, 400]
+seams = ["x0", "x1", "y0", "y1"]
+seam_profile = "floor"
+print_base_cells = [2, 2]
+
+[[pieces]]
+id = "pillar"
+footprint_cells = [0.5, 0.5]
+height_cells = 2.0
+lod_tris = [3000, 1200, 400]
+print_base_cells = [1, 1]
+
+[exports]
+profiles = ["unity", "unreal", "godot", "gltf_web", "stl_print", "roblox", "fivem_sollumz"]
+
+[legal]
+license = "CC0-1.0"
+license_file = "assets/LICENSE-CC0"
+texture_provenance = "generator"
+brand_check = true
+ai_content = false
+
+[print]
+manifold = true
+min_wall_mm = 1.2
+max_overhang_deg = 45
+# Downward faces steeper than max_overhang_deg are allowed only as short
+# bridges (span up to max_bridge_mm) or in total up to max_overhang_area_mm2.
+max_overhang_area_mm2 = 2.0
+max_bridge_mm = 14.0
+base_height_mm = 5.0
+max_bbox_mm = [220.0, 220.0, 250.0]
+print_orientation = "base_down"
+presupport_required = false
+layer_height_mm = 0.2
+
+[print.clip_system]
+# Our own parametric dogbone socket. It is not a copy of OpenLOCK or any
+# other clip standard; compatibility with existing standards is a TODO
+# pending a license check (docs/TODO.md).
+type = "garu_dogbone_v1"
+tolerance_mm = 0.2
+neck_width_mm = 3.0
+neck_length_mm = 2.5
+head_width_mm = 6.0
+head_length_mm = 3.0
+height_mm = 3.0
+roof_mm = 2.0
+positions = "edge_midpoints"

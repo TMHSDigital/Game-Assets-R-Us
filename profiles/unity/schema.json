@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-License-Identifier: GPL-3.0-or-later",
+  "title": "Profile overlay: unity",
+  "type": "object",
+  "required": ["name", "kind", "status", "enabled_in_ci", "experimental", "cell_size", "units", "format", "lod_mode", "lod0_suffix", "collider_mode", "collider_pattern", "export"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"const": "unity"},
+    "kind": {"const": "mesh"},
+    "status": {"enum": ["working", "stub", "experimental"]},
+    "enabled_in_ci": {"type": "boolean"},
+    "experimental": {"type": "boolean"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "units": {"enum": ["m", "cm", "mm", "studs"]},
+    "lod_mode": {"enum": ["embedded", "separate_files"]},
+    "lod0_suffix": {"type": "string"},
+    "collider_mode": {"enum": ["embedded", "separate_files", "omit"]},
+    "collider_pattern": {"type": "string", "pattern": "\\{name\\}.*\\{index"},    "format": {"const": "fbx"},
+    "export": {
+      "type": "object",
+      "required": ["axis_forward", "axis_up", "global_scale", "apply_unit_scale", "apply_scale_options", "bake_space_transform", "mesh_smooth_type"],
+      "additionalProperties": false,
+      "properties": {
+        "axis_forward": {"enum": ["X", "Y", "Z", "-X", "-Y", "-Z"]},
+        "axis_up": {"enum": ["X", "Y", "Z", "-X", "-Y", "-Z"]},
+        "global_scale": {"type": "number", "exclusiveMinimum": 0},
+        "apply_unit_scale": {"type": "boolean"},
+        "apply_scale_options": {"enum": ["FBX_SCALE_NONE", "FBX_SCALE_UNITS", "FBX_SCALE_CUSTOM", "FBX_SCALE_ALL"]},
+        "bake_space_transform": {"type": "boolean"},
+        "mesh_smooth_type": {"enum": ["OFF", "FACE", "EDGE"]}
+      }
+    }
+  }
+}

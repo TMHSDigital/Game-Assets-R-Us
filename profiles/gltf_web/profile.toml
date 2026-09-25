@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Generic glTF 2.0 for the web (three.js, Babylon.js, model-viewer).
+# Draco stays off so exports are byte-for-byte reproducible and need no
+# decoder. LODs and colliders ship as separate GLB files.
+name = "gltf_web"
+kind = "mesh"
+status = "working"
+enabled_in_ci = true
+experimental = false
+cell_size = 2.0
+units = "m"
+format = "glb"
+lod_mode = "separate_files"
+lod0_suffix = ""
+collider_mode = "separate_files"
+collider_pattern = "{name}_collider{index:02d}"
+
+[export]
+export_yup = true

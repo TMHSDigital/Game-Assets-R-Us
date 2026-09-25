@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Unity: one FBX per piece variant with LOD0..LODn children (Unity builds a
+# LODGroup from the _LODn suffixes on import) and UCX_ collider meshes.
+# Unity has no built-in UCX_ import; colliders are named by that widely used
+# convention so an import script or asset postprocessor can pick them up.
+name = "unity"
+kind = "mesh"
+status = "working"
+enabled_in_ci = true
+experimental = false
+cell_size = 2.0
+units = "m"
+format = "fbx"
+lod_mode = "embedded"
+lod0_suffix = "_LOD0"
+collider_mode = "embedded"
+collider_pattern = "UCX_{name}_{index:02d}"
+
+[export]
+axis_forward = "-Z"
+axis_up = "Y"
+global_scale = 1.0
+apply_unit_scale = true
+apply_scale_options = "FBX_SCALE_ALL"
+bake_space_transform = true
+mesh_smooth_type = "FACE"

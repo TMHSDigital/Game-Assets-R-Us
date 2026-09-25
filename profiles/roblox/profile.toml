@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Roblox: schema plus stub exporter only. Running this profile fails with a
+# clear "stub" message; nothing is exported yet.
+#
+# No platform limit is hard-coded. Every entry under [limits] stays unset
+# (value omitted) until it has been checked against the Roblox documentation,
+# at which point it records the value, the source URL and verified = true.
+# TODO: verify each limit against:
+#   https://create.roblox.com/docs/art/modeling/specifications
+#   https://create.roblox.com/docs/art/modeling/export-requirements
+#   https://create.roblox.com/docs/art/modeling/meshes
+name = "roblox"
+kind = "stub"
+status = "stub"
+enabled_in_ci = false
+experimental = true
+# Studs per grid cell is a kit design choice, not a platform limit.
+# TODO: confirm the stud-to-meter relationship in the Roblox docs before use.
+cell_size = 8.0
+units = "studs"
+format = "fbx"
+
+[limits.max_triangles_per_mesh]
+source = "https://create.roblox.com/docs/art/modeling/specifications"
+verified = false
+
+[limits.max_texture_size_px]
+source = "https://create.roblox.com/docs/art/modeling/specifications"
+verified = false
+
+[limits.max_mesh_bounds_studs]
+source = "https://create.roblox.com/docs/art/modeling/specifications"
+verified = false

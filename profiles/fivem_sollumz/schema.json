@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SPDX-License-Identifier: GPL-3.0-or-later",
+  "title": "Profile overlay: fivem_sollumz",
+  "type": "object",
+  "required": ["name", "kind", "status", "enabled_in_ci", "experimental", "cell_size", "units", "format", "blender_version", "sollumz_repo", "sollumz_commit", "archetype_prefix", "embedded_collision", "lod_distances", "streamed_memory_warn_mib", "target_builds"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"const": "fivem_sollumz"},
+    "kind": {"const": "stub"},
+    "status": {"enum": ["working", "stub", "experimental"]},
+    "enabled_in_ci": {"type": "boolean"},
+    "experimental": {"type": "boolean"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "units": {"enum": ["m", "cm", "mm", "studs"]},
+    "format": {"const": "ydr"},
+    "blender_version": {"const": "4.5"},
+    "sollumz_repo": {"const": "https://github.com/Sollumz/Sollumz"},
+    "sollumz_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "archetype_prefix": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "embedded_collision": {"type": "boolean"},
+    "lod_distances": {"type": "array", "minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
+    "streamed_memory_warn_mib": {"type": "number", "exclusiveMinimum": 0},
+    "target_builds": {"type": "array", "items": {"type": "integer", "minimum": 1}}
+  }
+}

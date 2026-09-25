@@ -1,0 +1,7 @@
+# Keep text files byte-identical on every OS so packaged outputs hash the same.
+* text=auto eol=lf
+*.blend binary
+*.png binary
+*.stl binary
+*.glb binary
+*.fbx binary

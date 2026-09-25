@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Godot 4: GLB, Y-up as the glTF spec requires. Collider meshes carry the
+# -convcolonly import hint so Godot creates convex StaticBody shapes.
+# Godot generates mesh LODs itself on import; manual LOD1..LODn ship as
+# separate GLB files for projects that want them.
+name = "godot"
+kind = "mesh"
+status = "working"
+enabled_in_ci = true
+experimental = false
+cell_size = 2.0
+units = "m"
+format = "glb"
+lod_mode = "separate_files"
+lod0_suffix = ""
+collider_mode = "embedded"
+collider_pattern = "{name}_col{index:02d}-convcolonly"
+
+[export]
+export_yup = true

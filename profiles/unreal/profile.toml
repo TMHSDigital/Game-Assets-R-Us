@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Unreal: FBX in centimeters. LOD1..LODn ship as separate FBX files (import
+# them as LODs of the LOD0 static mesh); UCX_ colliders are embedded with
+# LOD0, which Unreal's FBX importer turns into convex collision.
+# Axis and scale settings are ported from the author's Blender-Developer-Tools
+# snippets/export_preset_unreal.py.
+name = "unreal"
+kind = "mesh"
+status = "working"
+enabled_in_ci = true
+experimental = false
+cell_size = 2.0
+units = "m"
+format = "fbx"
+lod_mode = "separate_files"
+lod0_suffix = ""
+collider_mode = "embedded"
+collider_pattern = "UCX_{name}_{index:02d}"
+
+[export]
+axis_forward = "-Z"
+axis_up = "Y"
+global_scale = 100.0
+apply_unit_scale = false
+apply_scale_options = "FBX_SCALE_NONE"
+bake_space_transform = false
+mesh_smooth_type = "FACE"
