@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+id = "stone-dungeon-wall-sampler"
+version = "0.1.0"
+api_version = 1
+module = "generator.py"
+kit = "kit.toml"
+license = "CC0-1.0"
+description = "Public CC0 sampler: five modular stone dungeon pieces in three variants."

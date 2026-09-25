@@ -26,7 +26,9 @@ bevel_width_cells = 0.02
 bevel_segments = 1
 course_height_cells = 0.25
 block_length_cells = 0.5
-mortar_gap_cells = 0.012
+# Joint faces slope at atan(depth / (gap / 2)) below horizontal: 38.7 deg
+# here, inside the 45 deg print overhang limit.
+mortar_gap_cells = 0.02
 mortar_depth_cells = 0.008
 naming_pattern = "SM_{prefix}_{piece}_{variant}"
 lod_pattern = "{name}_LOD{n}"
@@ -41,7 +43,6 @@ max_slots_per_piece = 2
 slot = "stone"
 kind = "procedural"
 base_color = [0.42, 0.40, 0.37]
-base_color_2 = [0.33, 0.31, 0.29]
 roughness = 0.85
 noise_scale = 6.0
 
@@ -56,7 +57,7 @@ tiling_channel = "UVMap"
 lightmap_channel = "Lightmap"
 # 0.5 UV units per cell: a 1024 px tiling texture gives 512 px per cell.
 tiling_scale_per_cell = 0.5
-lightmap_margin = 0.02
+lightmap_margin = 0.01
 
 [texel_density]
 texture_size = 1024
@@ -73,7 +74,7 @@ max_parts = 4
 id = "wall_straight"
 footprint_cells = [1.0, 0.25]
 height_cells = 2.0
-lod_tris = [3000, 1200, 400]
+lod_tris = [900, 450, 180]
 seams = ["x0", "x1"]
 seam_profile = "wall"
 print_base_cells = [1, 1]
@@ -82,7 +83,7 @@ print_base_cells = [1, 1]
 id = "corner_outer"
 footprint_cells = [1.0, 1.0]
 height_cells = 2.0
-lod_tris = [5000, 2000, 700]
+lod_tris = [1400, 700, 250]
 seams = ["x1", "y1"]
 seam_profile = "wall"
 print_base_cells = [1, 1]
@@ -91,7 +92,7 @@ print_base_cells = [1, 1]
 id = "doorway"
 footprint_cells = [1.0, 0.25]
 height_cells = 2.0
-lod_tris = [3000, 1200, 400]
+lod_tris = [1000, 500, 200]
 seams = ["x0", "x1"]
 seam_profile = "wall"
 print_base_cells = [1, 1]
@@ -100,7 +101,7 @@ print_base_cells = [1, 1]
 id = "floor_2x2"
 footprint_cells = [2.0, 2.0]
 height_cells = 0.1
-lod_tris = [3000, 1200, 400]
+lod_tris = [450, 220, 90]
 seams = ["x0", "x1", "y0", "y1"]
 seam_profile = "floor"
 print_base_cells = [2, 2]
@@ -109,7 +110,7 @@ print_base_cells = [2, 2]
 id = "pillar"
 footprint_cells = [0.5, 0.5]
 height_cells = 2.0
-lod_tris = [3000, 1200, 400]
+lod_tris = [850, 420, 170]
 print_base_cells = [1, 1]
 
 [exports]

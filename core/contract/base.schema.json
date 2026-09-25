@@ -68,7 +68,6 @@
               "slot": {"type": "string", "pattern": "^[a-z0-9_]+$"},
               "kind": {"const": "procedural"},
               "base_color": {"$ref": "#/$defs/rgb"},
-              "base_color_2": {"$ref": "#/$defs/rgb"},
               "roughness": {"type": "number", "minimum": 0, "maximum": 1},
               "noise_scale": {"type": "number", "exclusiveMinimum": 0}
             }
