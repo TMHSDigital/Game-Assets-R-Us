@@ -96,10 +96,10 @@ jobs:
       - name: Test suite (unit, validator fixtures, external generator, determinism)
         run: xvfb-run -a pwsh -NoProfile -File scripts/test.ps1
 
-      - name: Build and validate the sampler (unity, godot, gltf_web, stl_print)
+      - name: Build and validate the sampler (unity, godot, gltf_web, stl_print, roblox)
         run: |
           xvfb-run -a pwsh -NoProfile -File scripts/build-kit.ps1 \
-            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print -Seed 1337
+            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print,roblox -Seed 1337
 
       - name: Brand blocklist scan (build outputs)
         run: |

@@ -11,7 +11,7 @@ This repository is the public core of that pipeline:
 | Kit contract | `core/contract/` | TOML contract plus JSON Schema (base schema and per-profile overlays) |
 | Generator plug-in seam | `core/generators/` | Discovers generators from configured paths, including external repos |
 | Validators | `core/validators/` | Core mesh, STL print and legal checks, one JSON report per piece |
-| Export profiles | `profiles/` | unity, unreal, godot, gltf_web, stl_print, plus roblox and fivem_sollumz stubs |
+| Export profiles | `profiles/` | unity, unreal, godot, gltf_web, stl_print; roblox and fivem_sollumz experimental |
 | Packagers | `core/packagers/` | Deterministic zips for itch.io / Fab style game packs and STL packs |
 | Scripts | `scripts/` | PowerShell entry points: build, validate, clean, test |
 | CI | `.github/workflows/` | Headless Blender on ubuntu-latest, 5.2 LTS and 4.5 LTS |

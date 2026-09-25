@@ -134,7 +134,8 @@ def check_transforms(ctx, ps):
 def expected_names(ctx, ps):
     base = api.piece_name(ctx.contract, ps.piece, ps.variant)
     names = {"lod0": base}
-    for n in range(1, len(ctx.pieces[ps.piece]["lod_tris"]) if ctx.is_mesh else 1):
+    lods = len(ctx.pieces[ps.piece]["lod_tris"]) if ctx.is_mesh and ctx.profile.get("lod_mode") != "omit" else 1
+    for n in range(1, lods):
         names[f"lod{n}"] = api.lod_name(ctx.contract, base, n)
     for i in range(len(ps.colliders)):
         names[f"collider{i}"] = api.collider_name(ctx.contract, base, i)
@@ -225,6 +226,11 @@ def check_lods(ctx, ps):
         return [skip("CORE.LOD.CHAIN", "LODs are not used by print profiles"),
                 skip("CORE.LOD.BUDGET", "LODs are not used by print profiles")]
     budgets = ctx.pieces[ps.piece]["lod_tris"]
+    if ctx.profile.get("lod_mode") == "omit":
+        tris = lod_mod.triangle_count(ps.lod0)
+        return [skip("CORE.LOD.CHAIN", f"profile '{ctx.profile['name']}' omits LODs (engine builds its own)"),
+                verdict("CORE.LOD.BUDGET", tris <= budgets[0], "LOD0 within its triangle budget",
+                        tris=[tris], budgets=[budgets[0]])]
     chain = ps.mesh_objects()
     tris = [lod_mod.triangle_count(o) for o in chain]
     complete = len(chain) == len(budgets)
@@ -247,6 +253,8 @@ def check_colliders(ctx, ps):
         return [skip("CORE.COLLIDER", "colliders are not used by print profiles")]
     if col["type"] == "none":
         return [skip("CORE.COLLIDER", "contract collider type is none")]
+    if ctx.profile.get("collider_mode") == "omit":
+        return [skip("CORE.COLLIDER", f"profile '{ctx.profile['name']}' omits collision meshes")]
     if not ps.colliders:
         return [fail("CORE.COLLIDER", "no collider parts present")]
     parts = {}

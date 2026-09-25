@@ -1,21 +1,45 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Roblox: schema plus stub exporter only. Running this profile fails with a
-# clear "stub" message; nothing is exported yet.
+# Roblox: EXPERIMENTAL exporter. One FBX per piece variant, LOD0 only
+# (Roblox builds its own LODs, see RenderFidelity), no collision meshes
+# (set CollisionFidelity in Studio), one material per mesh with the piece's
+# stone and mortar baked into one texture set on its unique UV layout.
+# Verified by re-import in Blender only; Roblox Studio import is a TODO.
 #
-# No platform limit is applied unless it has been checked against the Roblox
-# documentation: each entry under [limits] records the value, the source URL
-# and verified = true, or stays without a value and verified = false.
+# Limits carry a value only when verified against the Roblox docs (source
+# URL recorded); the exporter enforces verified limits and ignores the rest.
 # Verified 2026-09-25 against the pages linked below.
 name = "roblox"
-kind = "stub"
-status = "stub"
-enabled_in_ci = false
+kind = "mesh"
+status = "experimental"
+enabled_in_ci = true
 experimental = true
 # One cell keeps the game profiles' 2.0 m: 2.0 m / 0.28 m per stud.
 # Source: https://create.roblox.com/docs/physics/units (1 stud = 28 cm).
 cell_size = 7.142857
 units = "studs"
 format = "fbx"
+lod_mode = "omit"
+lod0_suffix = ""
+collider_mode = "omit"
+collider_pattern = "{name}_col{index:02d}"
+material_mode = "single_baked"
+piece_texture_size = 512
+
+# Blender export settings from https://create.roblox.com/docs/art/modeling/export-requirements
+# and https://create.roblox.com/docs/art/blender (units: Unit System None;
+# FBX: Path Mode Copy, Embed Textures, Apply Scalings FBX Unit Scale, no
+# leaf bones, no baked animation).
+[export]
+scene_unit_system = "NONE"
+axis_forward = "-Z"
+axis_up = "Y"
+global_scale = 1.0
+apply_unit_scale = true
+apply_scale_options = "FBX_SCALE_UNITS"
+bake_space_transform = false
+mesh_smooth_type = "FACE"
+path_mode = "COPY"
+embed_textures = true
 
 [limits.max_triangles_per_mesh]
 value = 20000
@@ -27,8 +51,7 @@ value = 4096
 source = "https://create.roblox.com/docs/art/modeling/texture-specifications"
 verified = true
 
-# "Mesh objects can only have one material assigned." Sampler pieces use two
-# palette slots (stone, mortar), so a Roblox exporter must merge them.
+# "Mesh objects can only have one material assigned."
 [limits.max_materials_per_mesh]
 value = 1
 source = "https://create.roblox.com/docs/art/modeling/texture-specifications"

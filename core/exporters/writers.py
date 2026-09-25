@@ -129,9 +129,10 @@ def export_fbx(path, objects, contract):
             "add_leaf_bones": False,
             "bake_anim": False,
             "use_tspace": False,
-            "embed_textures": False,
-            # Baked textures sit in exports/textures/ next to the FBX files.
-            "path_mode": "RELATIVE",
+            # Baked textures sit in exports/textures/ next to the FBX files;
+            # a profile may embed them instead (Roblox asks for Copy + Embed).
+            "embed_textures": exp.get("embed_textures", False),
+            "path_mode": exp.get("path_mode", "RELATIVE"),
         })
 
 

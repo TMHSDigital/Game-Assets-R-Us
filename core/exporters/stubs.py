@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Stub exporters: roblox (schema only) and fivem_sollumz (EXPERIMENTAL).
+"""Stub exporter entry for profiles with kind = "stub".
 
 Running a stub profile validates its schema fields and exits with code 3
 and a clear message. Nothing is exported, and no unverified platform limit
@@ -22,12 +22,7 @@ def run(contract):
     profile = contract["profile"]
     name = profile["name"]
     print(f"STUB profile '{name}' ({profile['status']}): schema fields are valid; no exporter is implemented.")
-    if name == "roblox":
-        for key, entry in sorted(profile.get("limits", {}).items()):
-            state = f"{entry['value']:g} (verified)" if entry["verified"] else "UNVERIFIED (TODO)"
-            print(f"STUB   limit {key}: {state}, source {entry['source']}")
-        print("STUB   see docs/TODO.md: verify every limit against the Roblox docs before implementing.")
-    elif name == "fivem_sollumz":
+    if name == "fivem_sollumz":
         print(f"STUB   requires Blender {profile['blender_version']} and Sollumz "
               f"{profile['sollumz_repo']} at {profile['sollumz_commit']} (not vendored)")
         print(f"STUB   streamed memory warning threshold: {profile['streamed_memory_warn_mib']} MiB")

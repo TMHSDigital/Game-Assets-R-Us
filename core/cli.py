@@ -99,7 +99,21 @@ def cmd_run(args):
     textures = resolved.get("textures")
     if wants_output and profile["kind"] == "mesh" and textures and textures["bake"]:
         from core import bake
-        baked = bake.bake_and_apply(resolved, os.path.join(out_dir, "exports", "textures"))
+        texdir = os.path.join(out_dir, "exports", "textures")
+        if profile.get("material_mode") == "single_baked":
+            # Tiling textures are baked in memory only, then each piece is
+            # baked from them into its own single-material texture set.
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmp:
+                bake.bake_and_apply(resolved, tmp)
+                from core import roblox
+                try:
+                    baked = roblox.prepare(scene, texdir)
+                except roblox.RobloxLimitError as exc:
+                    print(f"ERROR {exc}")
+                    return 1
+        else:
+            baked = bake.bake_and_apply(resolved, texdir)
         scene.textures = baked
         print(f"BAKED {len(baked)} textures")
 

@@ -19,7 +19,7 @@ import bpy
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLI = os.path.join(ROOT, "core", "cli.py")
 KIT = "stone-dungeon-wall-sampler"
-WORKING = ["unity", "unreal", "godot", "gltf_web", "stl_print"]
+WORKING = ["unity", "unreal", "godot", "gltf_web", "stl_print", "roblox"]
 SLOW = os.environ.get("GARU_SKIP_SLOW") == "1"
 
 

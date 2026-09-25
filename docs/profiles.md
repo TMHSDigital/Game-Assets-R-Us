@@ -7,7 +7,7 @@
 | godot | working | GLB | glTF Y up, meters | `<name>_LOD1.glb`, `_LOD2.glb` | `<name>_colNN-convcolonly` in the same file |
 | gltf_web | working | GLB, no Draco | glTF Y up, meters | separate files | `<name>_colliders.glb` |
 | stl_print | working | binary STL | millimeters, base down | none | none |
-| roblox | stub | (FBX) | studs | stub | stub |
+| roblox | experimental | FBX, textures embedded | studs (Unit System None, FBX Units Scale) | LOD0 only (Roblox builds LODs) | none (set CollisionFidelity) |
 | fivem_sollumz | experimental stub | (YDR) | meters | stub | stub |
 
 Every export is verified by importing it back into Blender and comparing
@@ -41,11 +41,15 @@ exact counts.
 
 ## Stubs
 
-`roblox` has a schema and a stub exporter only. Running it validates the
-profile and exits with code 3. A limit in `profiles/roblox/profile.toml`
-carries a value only when it has been verified against the Roblox
-documentation (source URL recorded); the schema rejects a value without
-`verified = true`.
+`roblox` is EXPERIMENTAL: it exports, but has been verified only by
+re-import in Blender, not in Roblox Studio. Roblox allows one material per
+mesh and asks for watertight meshes, so `core/roblox.py` bakes each piece's
+tiling materials into one texture set on its unique (lightmap) UV layout,
+which becomes its only UV layer. Export settings follow the Roblox Blender
+export page. A limit in `profiles/roblox/profile.toml` carries a value only
+when it has been verified against the Roblox documentation (source URL
+recorded); verified limits are enforced at export, unverified ones never.
+`tests/test_roblox.py` checks every FBX against them.
 
 `fivem_sollumz` is EXPERIMENTAL: schema fields (archetype prefix, embedded
 collision, LOD distances, 16 MiB streamed memory warning, target builds), a

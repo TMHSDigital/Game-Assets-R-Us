@@ -51,10 +51,10 @@ class KitScene:
     textures: list = field(default_factory=list)  # baked PNG paths (core/bake.py)
 
 
-def reset_scene():
+def reset_scene(unit_system="METRIC"):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.unit_settings.system = "METRIC"
+    scene.unit_settings.system = unit_system
     scene.unit_settings.scale_length = 1.0
 
 
@@ -86,7 +86,7 @@ def _scale_to_profile(objects, cell):
 
 def generate(contract, module, seed, piece_ids=None):
     """Run the generator and complete every piece set. Returns a KitScene."""
-    reset_scene()
+    reset_scene(contract["profile"].get("export", {}).get("scene_unit_system", "METRIC"))
     materials.ensure_palette(contract)
     piece_ids = list(piece_ids or [p["id"] for p in contract["pieces"]])
     objects = list(module.build(contract, seed, piece_ids))
@@ -100,12 +100,12 @@ def generate(contract, module, seed, piece_ids=None):
         canonical.finalize(obj.data)
         ps = PieceSet(obj[api.PROP_PIECE], obj[api.PROP_VARIANT], obj)
         if profile["kind"] == "mesh":
-            budgets = pieces[ps.piece]["lod_tris"]
+            budgets = pieces[ps.piece]["lod_tris"] if profile["lod_mode"] != "omit" else []
             for n, budget in enumerate(budgets[1:], start=1):
                 lod = lod_mod.make_lod(obj, budget, api.lod_name(contract, obj.name, n))
                 api.tag(lod, ps.piece, ps.variant, api.ROLE_LOD, lod=n)
                 ps.lods.append(lod)
-            if contract["collider"]["type"] != "none":
+            if contract["collider"]["type"] != "none" and profile["collider_mode"] != "omit":
                 if hasattr(module, "build_colliders"):
                     ps.colliders = list(module.build_colliders(contract, obj))
                 else:

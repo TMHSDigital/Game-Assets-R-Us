@@ -44,6 +44,10 @@ def _importer(path):
 
 def _import(path):
     tmp = bpy.data.scenes.new("garu_roundtrip")
+    # Same unit system as the export scene, so FBX unit metadata is read
+    # back the way it was written.
+    tmp.unit_settings.system = bpy.context.scene.unit_settings.system
+    tmp.unit_settings.scale_length = bpy.context.scene.unit_settings.scale_length
     before = set(bpy.data.objects)
     before_meshes = set(bpy.data.meshes)
     before_mats = set(bpy.data.materials)

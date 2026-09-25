@@ -27,6 +27,14 @@ IMPORT_NOTES = {
         "No Draco compression. `<name>_LOD1.glb` and `_LOD2.glb` are lower detail",
         "versions; `<name>_colliders.glb` holds simple convex collision shapes.",
     ],
+    "roblox": [
+        "EXPERIMENTAL: verified by re-import in Blender, not yet in Roblox Studio.",
+        "Import each FBX with the Studio Importer, Scale Unit set to Stud. Each piece is",
+        "one watertight MeshPart with one material and its own texture set (base color,",
+        "roughness and normal, embedded in the FBX and also in textures/ for a",
+        "SurfaceAppearance). No collision meshes are included: set CollisionFidelity",
+        "(Box for walls and floors, Hull for pillars). Roblox builds LODs itself.",
+    ],
     "stl_print": [
         "Print the STL files flat as exported, base down. See `print_settings.md`",
         "for printer settings, measured wall thickness and the clip system.",
@@ -76,6 +84,8 @@ def kit_readme(contract, info, manifest, summary, demo):
     lines += ["", "## Included LODs and collision", ""]
     if profile["kind"] == "print":
         lines.append("Print files have no LODs or collision meshes.")
+    elif profile.get("lod_mode") == "omit":
+        lines.append("LOD0 only (the engine generates LODs); no collision meshes.")
     else:
         n = len(contract["pieces"][0]["lod_tris"])
         lines += [f"Every piece variant includes LOD0 to LOD{n - 1}:", "",

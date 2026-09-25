@@ -9,13 +9,16 @@ Verified on 2026-09-25 against create.roblox.com and recorded in
   (stone, mortar) must be merged by a Roblox exporter
 - 1 stud = 28 cm (units), so one 2.0 m cell is 7.142857 studs
 
+The exporter exists (experimental, `core/roblox.py`): one watertight FBX per
+piece variant, one material with a per-piece baked texture set, textures
+embedded, verified limits enforced.
+
 Still open:
+- import check in Roblox Studio (Scale Unit = Stud); not installed here
 - maximum mesh size in studs is not stated on the pages checked; it stays
   unverified and unapplied
 - the Roblox docs ask for quads where possible; the pipeline exports
   triangles (allowed, but worth revisiting for Roblox)
-- the exporter itself (FBX, Apply Scalings "FBX Unit Scale" per the Roblox
-  export settings page), plus an import check in Studio
 
 ## FiveM via Sollumz (profile: fivem_sollumz, experimental)
 Headless feasibility is established. On 2026-09-25, with Blender 4.5.14 and
