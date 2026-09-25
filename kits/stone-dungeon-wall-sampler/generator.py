@@ -29,7 +29,7 @@ import bpy
 from mathutils import Vector
 
 from core.generators import api
-from core.geometry import prims, uv
+from core.geometry import prims
 
 EPS = 1e-6
 STONE, MORTAR = 0, 1
@@ -418,7 +418,9 @@ def build(contract, seed, piece_ids):
                 bm.free()
             for mat in mats:
                 obj.data.materials.append(mat)
-            uv.box_project(obj, contract["uv"]["tiling_channel"], contract["uv"]["tiling_scale_per_cell"])
+            # No UVs here: the core box-projects the tiling channel after it
+            # has put positions in canonical, quantized form, so bmesh
+            # last-bit noise never reaches the UVs.
             api.tag(obj, pid, variant, api.ROLE_MESH)
             objects.append(obj)
     return objects

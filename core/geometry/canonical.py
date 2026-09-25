@@ -11,7 +11,8 @@ mesh it owns in a canonical order before UV packing and export:
             faces sorted by their vertex index tuples
   edges     derived from the faces (deterministic)
 
-Material indices and every UV layer are carried over per loop. With this in
+Material indices and every UV layer (quantized like positions) are carried
+over per loop. With this in
 place, deterministic positions are enough for byte-identical exports.
 """
 
@@ -23,7 +24,9 @@ def canonicalize(mesh, digits=6):
     order = sorted(range(len(verts)), key=lambda i: verts[i])
     new_index = {old: new for new, old in enumerate(order)}
     layers = [layer.name for layer in mesh.uv_layers]
-    uv_data = {name: [tuple(d.uv) for d in mesh.uv_layers[name].data] for name in layers}
+    # UVs are quantized too: UVs projected from pre-quantization positions
+    # carry the same last-bit noise.
+    uv_data = {name: [tuple(round(c, digits) for c in d.uv) for d in mesh.uv_layers[name].data] for name in layers}
 
     polys = []
     for poly in mesh.polygons:
