@@ -87,9 +87,9 @@ def _stable_key_to_uuid(fbx_utils):
 
 @contextlib.contextmanager
 def _reproducible_fbx():
-    """Pin the two per-run inputs of Blender's FBX exporter: the header time
-    and the uid hash. Uid tables are reset so each file is independent of
-    what was exported before it in the same process."""
+    """Pin the per-run inputs of Blender's FBX exporter: the header time, the
+    uid hash and the absolute texture path. Uid tables are reset so each file
+    is independent of what was exported before it in the same process."""
     import io_scene_fbx.export_fbx_bin as fbx_bin
     import io_scene_fbx.fbx_utils as fbx_utils
     original_header = fbx_bin.fbx_header_elements
@@ -98,15 +98,26 @@ def _reproducible_fbx():
     def pinned(root, scene_data, time=None):
         return original_header(root, scene_data, FBX_FIXED_TIME)
 
+    original_vid_path = fbx_bin._gen_vid_path
+
+    def relative_vid_path(img, scene_data):
+        # The exporter writes each texture's absolute path next to the
+        # relative one, which ties the bytes to the build folder. Write the
+        # relative path in both fields; embedding reads img.filepath instead.
+        _abs, rel = original_vid_path(img, scene_data)
+        return rel, rel
+
     fbx_utils._keys_to_uuids.clear()
     fbx_utils._uuids_to_keys.clear()
     fbx_bin.fbx_header_elements = pinned
     fbx_utils._key_to_uuid = _stable_key_to_uuid(fbx_utils)
+    fbx_bin._gen_vid_path = relative_vid_path
     try:
         yield
     finally:
         fbx_bin.fbx_header_elements = original_header
         fbx_utils._key_to_uuid = original_key
+        fbx_bin._gen_vid_path = original_vid_path
 
 
 def export_fbx(path, objects, contract):
