@@ -104,7 +104,11 @@ def _reproducible_fbx():
         # The exporter writes each texture's absolute path next to the
         # relative one, which ties the bytes to the build folder. Write the
         # relative path in both fields; embedding reads img.filepath instead.
+        # os.path.relpath gives backslashes on Windows; write forward slashes
+        # so the bytes match across platforms and non-Windows importers
+        # resolve the texture.
         _abs, rel = original_vid_path(img, scene_data)
+        rel = rel.replace("\\", "/")
         return rel, rel
 
     fbx_utils._keys_to_uuids.clear()
