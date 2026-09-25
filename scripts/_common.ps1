@@ -37,6 +37,16 @@ function Expand-Profiles {
     return , @($out | Select-Object -Unique)
 }
 
+function Get-ProfileStatus {
+    # The status = "..." line of profiles/<name>/profile.toml, or "" if absent.
+    param([string]$Name)
+    $toml = Join-Path $script:RepoRoot "profiles/$Name/profile.toml"
+    if (-not (Test-Path -LiteralPath $toml)) { return "" }
+    $m = Select-String -LiteralPath $toml -Pattern '^\s*status\s*=\s*"([^"]*)"' | Select-Object -First 1
+    if ($m) { return $m.Matches[0].Groups[1].Value }
+    return ""
+}
+
 function Invoke-Blender {
     # Runs Blender headless and streams its output. Returns the exit code.
     param([string]$Exe, [string[]]$Arguments)

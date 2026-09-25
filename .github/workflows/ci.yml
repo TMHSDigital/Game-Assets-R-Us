@@ -99,7 +99,7 @@ jobs:
       - name: Build and validate the sampler (unity, godot, gltf_web, stl_print, roblox)
         run: |
           xvfb-run -a pwsh -NoProfile -File scripts/build-kit.ps1 \
-            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print,roblox -Seed 1337
+            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print,roblox -Seed 1337 -Strict
 
       - name: Brand blocklist scan (build outputs)
         run: |
