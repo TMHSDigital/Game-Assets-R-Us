@@ -96,8 +96,7 @@ def generate(contract, module, seed, piece_ids=None):
 
     sets = []
     for obj in sorted(objects, key=lambda o: o.name):
-        canonical.triangulate(obj.data)
-        canonical.canonicalize(obj.data)
+        canonical.finalize(obj.data)
         ps = PieceSet(obj[api.PROP_PIECE], obj[api.PROP_VARIANT], obj)
         if profile["kind"] == "mesh":
             budgets = pieces[ps.piece]["lod_tris"]

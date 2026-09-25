@@ -67,6 +67,17 @@ def triangulate(mesh):
     return mesh
 
 
+def finalize(mesh):
+    """Canonical order, then triangulate, then canonical order again.
+
+    The first pass matters: BEAUTY triangulation breaks exact ties (a square
+    face has two equally good diagonals) by loop order, so loop order has to
+    be canonical before triangulating, or memory layout picks the diagonal."""
+    canonicalize(mesh)
+    triangulate(mesh)
+    return canonicalize(mesh)
+
+
 def canonicalize_objects(objects):
     for obj in objects:
         if obj.type == "MESH":

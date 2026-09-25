@@ -136,8 +136,7 @@ def make_printable(contract, ps):
         _apply_boolean(tile, cutters, "DIFFERENCE")
         _remove(cutters)
 
-    canonical.triangulate(tile.data)
-    canonical.canonicalize(tile.data)
+    canonical.finalize(tile.data)
     api.tag(tile, ps.piece, ps.variant, "print")
     tile["garu_print_base"] = [tx, ty]
     tile["garu_print_offset"] = [offset.x, offset.y]
