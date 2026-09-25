@@ -24,7 +24,7 @@ def run(contract):
     print(f"STUB profile '{name}' ({profile['status']}): schema fields are valid; no exporter is implemented.")
     if name == "roblox":
         for key, entry in sorted(profile.get("limits", {}).items()):
-            state = "verified" if entry["verified"] else "UNVERIFIED (TODO)"
+            state = f"{entry['value']:g} (verified)" if entry["verified"] else "UNVERIFIED (TODO)"
             print(f"STUB   limit {key}: {state}, source {entry['source']}")
         print("STUB   see docs/TODO.md: verify every limit against the Roblox docs before implementing.")
     elif name == "fivem_sollumz":

@@ -2,32 +2,39 @@
 # Roblox: schema plus stub exporter only. Running this profile fails with a
 # clear "stub" message; nothing is exported yet.
 #
-# No platform limit is hard-coded. Every entry under [limits] stays unset
-# (value omitted) until it has been checked against the Roblox documentation,
-# at which point it records the value, the source URL and verified = true.
-# TODO: verify each limit against:
-#   https://create.roblox.com/docs/art/modeling/specifications
-#   https://create.roblox.com/docs/art/modeling/export-requirements
-#   https://create.roblox.com/docs/art/modeling/meshes
+# No platform limit is applied unless it has been checked against the Roblox
+# documentation: each entry under [limits] records the value, the source URL
+# and verified = true, or stays without a value and verified = false.
+# Verified 2026-09-25 against the pages linked below.
 name = "roblox"
 kind = "stub"
 status = "stub"
 enabled_in_ci = false
 experimental = true
-# Studs per grid cell is a kit design choice, not a platform limit.
-# TODO: confirm the stud-to-meter relationship in the Roblox docs before use.
-cell_size = 8.0
+# One cell keeps the game profiles' 2.0 m: 2.0 m / 0.28 m per stud.
+# Source: https://create.roblox.com/docs/physics/units (1 stud = 28 cm).
+cell_size = 7.142857
 units = "studs"
 format = "fbx"
 
 [limits.max_triangles_per_mesh]
+value = 20000
 source = "https://create.roblox.com/docs/art/modeling/specifications"
-verified = false
+verified = true
 
 [limits.max_texture_size_px]
-source = "https://create.roblox.com/docs/art/modeling/specifications"
-verified = false
+value = 4096
+source = "https://create.roblox.com/docs/art/modeling/texture-specifications"
+verified = true
 
+# "Mesh objects can only have one material assigned." Sampler pieces use two
+# palette slots (stone, mortar), so a Roblox exporter must merge them.
+[limits.max_materials_per_mesh]
+value = 1
+source = "https://create.roblox.com/docs/art/modeling/texture-specifications"
+verified = true
+
+# Not stated on the specification pages checked; stays unverified.
 [limits.max_mesh_bounds_studs]
 source = "https://create.roblox.com/docs/art/modeling/specifications"
 verified = false

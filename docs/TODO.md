@@ -1,15 +1,21 @@
 # Open TODOs
 
-## Roblox limits (profile: roblox, stub)
-Every platform limit in `profiles/roblox/profile.toml` is unset and marked
-`verified = false`. Before an exporter is written, check each against the
-Roblox documentation and record value, source URL and `verified = true`:
-- https://create.roblox.com/docs/art/modeling/specifications
-- https://create.roblox.com/docs/art/modeling/export-requirements
-- https://create.roblox.com/docs/art/modeling/meshes
+## Roblox (profile: roblox, stub)
+Verified on 2026-09-25 against create.roblox.com and recorded in
+`profiles/roblox/profile.toml` with source URLs:
+- 20,000 triangles per mesh (general specifications)
+- textures up to 4096 x 4096 (texture specifications)
+- one material per mesh (texture specifications): the sampler's two slots
+  (stone, mortar) must be merged by a Roblox exporter
+- 1 stud = 28 cm (units), so one 2.0 m cell is 7.142857 studs
 
-Also confirm the stud-to-meter relationship; `cell_size = 8.0` studs is a
-design choice, not a documented value.
+Still open:
+- maximum mesh size in studs is not stated on the pages checked; it stays
+  unverified and unapplied
+- the Roblox docs ask for quads where possible; the pipeline exports
+  triangles (allowed, but worth revisiting for Roblox)
+- the exporter itself (FBX, Apply Scalings "FBX Unit Scale" per the Roblox
+  export settings page), plus an import check in Studio
 
 ## FiveM via Sollumz (profile: fivem_sollumz, experimental)
 Headless feasibility is established. On 2026-09-25, with Blender 4.5.14 and

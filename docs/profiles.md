@@ -41,9 +41,10 @@ exact counts.
 ## Stubs
 
 `roblox` has a schema and a stub exporter only. Running it validates the
-profile and exits with code 3. Every limit in `profiles/roblox/profile.toml`
-stays unset with `verified = false` until it has been checked against the
-Roblox documentation.
+profile and exits with code 3. A limit in `profiles/roblox/profile.toml`
+carries a value only when it has been verified against the Roblox
+documentation (source URL recorded); the schema rejects a value without
+`verified = true`.
 
 `fivem_sollumz` is EXPERIMENTAL: schema fields (archetype prefix, embedded
 collision, LOD distances, 16 MiB streamed memory warning, target builds), a

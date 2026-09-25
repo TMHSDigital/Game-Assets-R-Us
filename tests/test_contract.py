@@ -140,11 +140,21 @@ class ResolveTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             resolved["grid"]["height_cells"] = 3
 
-    def test_roblox_limits_unverified(self):
+    def test_roblox_limits_only_with_verified_values(self):
         limits = resolve(load_contract(SAMPLER), "roblox")["profile"]["limits"]
         for name, entry in limits.items():
-            self.assertFalse(entry["verified"], name)
-            self.assertNotIn("value", entry, name)
+            self.assertTrue(entry["source"].startswith("https://create.roblox.com/"), name)
+            if entry["verified"]:
+                self.assertIn("value", entry, name)
+            else:
+                self.assertNotIn("value", entry, name)
+        self.assertEqual(limits["max_triangles_per_mesh"]["value"], 20000)
+
+    def test_roblox_value_without_verification_rejected(self):
+        contract = copy.deepcopy(load_contract(SAMPLER))
+        contract["profiles"] = {"roblox": {"limits": {"max_mesh_bounds_studs": {"value": 2048}}}}
+        with self.assertRaises(ContractError):
+            resolve(contract, "roblox")
 
 
 if __name__ == "__main__":

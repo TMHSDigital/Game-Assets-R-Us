@@ -25,7 +25,7 @@ Each profile sets `cell_size` and `units`:
 |---|---|---|
 | unity, unreal, godot, gltf_web | 2.0 | m |
 | stl_print | 25.4 | mm |
-| roblox (stub) | 8.0 | studs (design choice, see TODO) |
+| roblox (stub) | 7.142857 | studs (2.0 m at 28 cm per stud) |
 
 Generators build in cell space (1 Blender unit = 1 cell). The core scales
 every mesh once into profile units, so one validation rule covers all units.
