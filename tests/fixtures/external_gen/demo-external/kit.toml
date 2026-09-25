@@ -53,7 +53,7 @@ max_parts = 1
 id = "plinth"
 footprint_cells = [1.0, 1.0]
 height_cells = 0.5
-lod_tris = [200, 100, 50]
+lod_tris = [60, 26, 16]
 print_base_cells = [1, 1]
 
 [exports]
@@ -61,6 +61,7 @@ profiles = ["gltf_web", "stl_print"]
 
 [legal]
 license = "CC0-1.0"
+license_file = "LICENSE-CC0"
 texture_provenance = "generator"
 brand_check = true
 ai_content = false
