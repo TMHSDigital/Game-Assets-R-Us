@@ -43,6 +43,7 @@ max_slots_per_piece = 2
 slot = "stone"
 kind = "procedural"
 base_color = [0.42, 0.40, 0.37]
+base_color_2 = [0.31, 0.29, 0.27]
 roughness = 0.85
 noise_scale = 6.0
 
@@ -50,7 +51,16 @@ noise_scale = 6.0
 slot = "mortar"
 kind = "procedural"
 base_color = [0.24, 0.23, 0.21]
+base_color_2 = [0.19, 0.18, 0.16]
 roughness = 0.95
+noise_scale = 8.0
+
+# Procedural materials baked to seamless tiling textures (one set per slot),
+# which is what engines receive. Size matches texel_density.texture_size.
+[textures]
+bake = true
+size = 1024
+maps = ["base_color", "roughness", "normal"]
 
 [uv]
 tiling_channel = "UVMap"

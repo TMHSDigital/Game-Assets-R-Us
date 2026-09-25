@@ -37,9 +37,10 @@ every mesh once into profile units, so one validation rule covers all units.
 | `[kit]` | `id`, `name`, `version`, `prefix`, `generator` (registry id), `default_seed`, `description` |
 | `[grid]` | `height_cells`, `wall_thickness_cells`, `snap_tolerance_cells` |
 | `[style]` | `bevel_width_cells`, `bevel_segments`, masonry sizes, `naming_pattern`, `lod_pattern`, `collider_pattern`, `pivot_rule` (`base_min_corner` or `base_center`), `variants` |
-| `[materials]` | `max_slots_per_piece`, `palette` (procedural only: `slot`, `base_color`, `roughness`, `noise_scale`) |
+| `[materials]` | `max_slots_per_piece`, `palette` (procedural only: `slot`, `base_color`, `base_color_2`, `roughness`, `noise_scale`) |
 | `[uv]` | `tiling_channel`, `lightmap_channel`, `tiling_scale_per_cell`, `lightmap_margin` |
 | `[texel_density]` | `texture_size`, `min_px_per_cell`, `max_px_per_cell`, `coverage` |
+| `[textures]` | `bake`, `size` (must equal `texel_density.texture_size`), `maps` (`base_color`, `roughness`, `normal`) |
 | `[collider]` | `type` (`convex`, `box`, `none`), `max_faces_per_part`, `max_parts` |
 | `[[pieces]]` | `id`, `footprint_cells`, `height_cells`, `lod_tris` (per LOD budget), `seams`, `seam_profile`, `print_base_cells` |
 | `[exports]` | `profiles` |

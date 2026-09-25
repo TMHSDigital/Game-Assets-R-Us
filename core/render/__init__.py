@@ -20,7 +20,7 @@ from ..validators.report import write_json
 VIEW_DIR = Vector((1.0, -1.35, 1.05)).normalized()
 
 
-def _setup_render(scene, width, height):
+def _setup_render(scene, width, height, textured=False):
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.render.resolution_x, scene.render.resolution_y = width, height
     scene.render.resolution_percentage = 100
@@ -30,7 +30,8 @@ def _setup_render(scene, width, height):
     scene.render.film_transparent = False
     shading = scene.display.shading
     shading.light = "STUDIO"
-    shading.color_type = "MATERIAL"
+    # Baked textures when the kit has them, otherwise flat material colors.
+    shading.color_type = "TEXTURE" if textured else "MATERIAL"
     shading.show_cavity = True
     shading.cavity_type = "BOTH"
     shading.show_shadows = True
@@ -88,7 +89,7 @@ def contact_sheet(scene, kit_scene, path):
     for obj in bpy.data.objects:
         obj.hide_render = obj.type == "MESH" and obj not in shown
     bpy.context.view_layer.update()  # matrix_world is stale until the depsgraph updates
-    _setup_render(scene, 1920, 1440)
+    _setup_render(scene, 1920, 1440, textured=bool(kit_scene.textures))
     _frame(scene, shown)
     return _render(scene, path)
 
@@ -177,7 +178,7 @@ def demo_scene(scene, kit_scene, path, json_path):
     write_json(json_path, result)
     print(f"DEMO pieces={len(placed)} seam_pairs={len(pairs)} max_deviation={worst:.3g} "
           f"tolerance={tol:.3g} passed={result['passed']}")
-    _setup_render(scene, 1920, 1080)
+    _setup_render(scene, 1920, 1080, textured=bool(kit_scene.textures))
     _frame(scene, [inst for inst, _ in placed])
     _render(scene, path)
     return result

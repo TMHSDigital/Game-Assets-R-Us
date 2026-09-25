@@ -118,6 +118,13 @@ def export_scene(scene, out_dir):
                    "bytes": os.path.getsize(os.path.join(exp_dir, f)),
                    "objects": expected[f], "roundtrip": results[f]} for f in files],
     }
+    # Baked textures live in exports/textures/; they are hashed like every
+    # other export (the model files that use them were round-tripped above).
+    for path in scene.textures:
+        rel = os.path.relpath(path, exp_dir).replace(os.sep, "/")
+        manifest["files"].append({"name": rel, "sha256": sha256(path), "bytes": os.path.getsize(path),
+                                  "objects": {}, "roundtrip": {"passed": True, "problems": [], "objects": 0,
+                                                               "kind": "texture"}})
     manifest["roundtrip_passed"] = all(r["passed"] for r in results.values())
     write_json(os.path.join(out_dir, "export_manifest.json"), manifest)
     failed = [f for f, r in results.items() if not r["passed"]]

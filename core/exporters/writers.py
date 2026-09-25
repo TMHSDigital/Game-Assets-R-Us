@@ -130,7 +130,8 @@ def export_fbx(path, objects, contract):
             "bake_anim": False,
             "use_tspace": False,
             "embed_textures": False,
-            "path_mode": "STRIP",
+            # Baked textures sit in exports/textures/ next to the FBX files.
+            "path_mode": "RELATIVE",
         })
 
 

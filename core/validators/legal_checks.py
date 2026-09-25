@@ -148,6 +148,8 @@ def check_provenance(contract):
     external = []
     if legal["texture_provenance"] == "generator":
         for img in bpy.data.images:
+            if img.get("garu_generated"):
+                continue  # baked from the kit's own procedural materials (core/bake.py)
             if img.source in {"FILE", "SEQUENCE", "MOVIE"} or img.filepath or img.packed_file:
                 external.append(f"image:{img.name}")
         for font in bpy.data.fonts:

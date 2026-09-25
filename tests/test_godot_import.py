@@ -55,7 +55,8 @@ class GodotImport(unittest.TestCase):
         with open(os.path.join(project, "project.godot"), "w", encoding="utf-8") as fh:
             fh.write('config_version=5\n\n[application]\nconfig/name="garu_import_check"\n')
         shutil.copy(CHECK, project)
-        for f in manifest["files"]:
+        models = [f for f in manifest["files"] if f["name"].endswith(".glb")]
+        for f in models:
             shutil.copy(os.path.join(exports, f["name"]), os.path.join(project, "models"))
         _run([GODOT, "--headless", "--path", project, "--import"])
         out = os.path.join(self.tmp, "godot.json")
@@ -64,7 +65,7 @@ class GodotImport(unittest.TestCase):
             seen = json.load(fh)
 
         problems = []
-        for f in manifest["files"]:
+        for f in models:
             got = seen.get(f["name"])
             if not got or not got["loaded"]:
                 problems.append(f"{f['name']}: not loaded by Godot")
@@ -87,7 +88,7 @@ class GodotImport(unittest.TestCase):
                 # Blender Z-up (x, y, z) arrives in Godot Y-up as (x, z, y).
                 if any(abs(a - b) > TOL for a, b in ((bx, gx), (bz, gy), (by, gz))):
                     problems.append(f"{f['name']}: {name} size {meshes[name]} != Y-up of {want['dims']}")
-        print(f"GODOT {len(manifest['files'])} files imported by {os.path.basename(GODOT)}; problems: {len(problems)}")
+        print(f"GODOT {len(models)} files imported by {os.path.basename(GODOT)}; problems: {len(problems)}")
         self.assertEqual(problems, [])
 
 

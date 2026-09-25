@@ -39,7 +39,8 @@ def check(entries):
     for name, src in sorted(entries.items()):
         if len(name) > MAX_PATH:
             problems.append(f"path longer than {MAX_PATH} characters: {name}")
-        if name.lower().endswith(".png") and not isinstance(src, (bytes, bytearray)):
+        is_preview = "/previews/" in f"/{name}" and name.lower().endswith(".png")
+        if is_preview and not isinstance(src, (bytes, bytearray)):
             size = png_size(src)
             nbytes = os.path.getsize(src)
             gallery += nbytes

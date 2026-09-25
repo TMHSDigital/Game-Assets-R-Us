@@ -33,6 +33,10 @@ def semantic_errors(data):
     profiles = data.get("exports", {}).get("profiles", [])
     if "stl_print" in profiles and "print" not in data:
         errors.append(("/", "exports include stl_print but the [print] block is missing"))
+    tex = data.get("textures")
+    if tex and tex.get("bake") and tex["size"] != data.get("texel_density", {}).get("texture_size"):
+        errors.append(("/textures/size", "must equal texel_density.texture_size, which the "
+                                         "texel density check assumes"))
     legal = data.get("legal", {})
     if legal.get("license") == "commercial-eula" and not legal.get("eula_file"):
         errors.append(("/legal", "license commercial-eula requires legal.eula_file"))

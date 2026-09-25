@@ -36,6 +36,8 @@ class MarketplaceChecks(unittest.TestCase):
         self.assertEqual(marketplace.check({"kit/previews/big.png": big}), [])
         problems = marketplace.check({"kit/previews/small.png": small})
         self.assertTrue(any("1920 x 1080" in p for p in problems), problems)
+        # Textures are not gallery images.
+        self.assertEqual(marketplace.check({"kit/models/textures/T_SDW_stone_normal.png": small}), [])
 
     def test_path_length(self):
         long_name = "kit/" + "a" * 140 + ".glb"

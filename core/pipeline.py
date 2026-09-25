@@ -48,6 +48,7 @@ class KitScene:
     sets: list
     clips: list = field(default_factory=list)
     notes: list = field(default_factory=list)
+    textures: list = field(default_factory=list)  # baked PNG paths (core/bake.py)
 
 
 def reset_scene():

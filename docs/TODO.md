@@ -87,10 +87,12 @@ submission; the Fab 3D viewer preview (under 500 MB) and gallery video are
 not produced; itch.io's per-file size limit is not stated in its FAQ.
 
 ## Materials
-Engines receive constant base color and roughness per material slot;
-procedural detail (noise bump) is Blender-only. Baking the procedural
-materials to textures (texture_provenance = "generator") is a candidate for
-v0.2.
+Done: palette materials are baked to seamless tiling textures (base color,
+roughness, tangent-space normal, 1024 px) by `core/bake.py` and shipped with
+every game profile; `tests/test_bake.py` checks seamlessness, non-flatness
+and reproducibility. Normal maps are OpenGL convention (+Y); Unreal users
+flip the green channel on import (or enable "Flip Green Channel").
+Open: stone color variation is per tile, not per stone (no per-stone tint).
 
 ## Cross-version determinism
 Exports are byte-identical within one Blender version. Across versions the

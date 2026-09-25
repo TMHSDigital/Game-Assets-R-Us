@@ -46,11 +46,14 @@ def package(contract, info, out_dir, dist_dir):
 
     entries = {}
     folder = "stl" if profile["kind"] == "print" else "models"
-    for name in sorted(os.listdir(exp_dir)):
-        if name == "print_settings.md":
-            entries[f"{root}/print_settings.md"] = os.path.join(exp_dir, name)
-        else:
-            entries[f"{root}/{folder}/{name}"] = os.path.join(exp_dir, name)
+    for dirpath, _dirs, filenames in os.walk(exp_dir):
+        for name in filenames:
+            path = os.path.join(dirpath, name)
+            rel = os.path.relpath(path, exp_dir).replace(os.sep, "/")
+            if rel == "print_settings.md":
+                entries[f"{root}/print_settings.md"] = path
+            else:
+                entries[f"{root}/{folder}/{rel}"] = path
     if os.path.isdir(prev_dir):
         for name in sorted(os.listdir(prev_dir)):
             entries[f"{root}/previews/{name}"] = os.path.join(prev_dir, name)

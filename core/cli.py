@@ -95,6 +95,14 @@ def cmd_run(args):
             return 1
         print("VALIDATION PASSED")
 
+    wants_output = any(s in stages for s in ("export", "render", "package"))
+    textures = resolved.get("textures")
+    if wants_output and profile["kind"] == "mesh" and textures and textures["bake"]:
+        from core import bake
+        baked = bake.bake_and_apply(resolved, os.path.join(out_dir, "exports", "textures"))
+        scene.textures = baked
+        print(f"BAKED {len(baked)} textures")
+
     if "export" in stages:
         from core.exporters import export_scene
         manifest = export_scene(scene, out_dir)
