@@ -1,0 +1,163 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Legal checks.
+
+LEGAL.BRAND       brand blocklist scan over object, mesh, material, image,
+                  node and collection names, custom properties, contract
+                  metadata and export file names
+LEGAL.LICENSE     the kit ships the license file its contract declares
+LEGAL.PROVENANCE  texture_provenance = "generator" means no external
+                  images, fonts or HDRIs exist in the scene
+LEGAL.AI_CONTENT  generators are deterministic code: ai_content = false
+"""
+
+import os
+import re
+
+import bpy
+
+from .report import verdict
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BLOCKLIST = os.path.join(REPO_ROOT, "data", "brand_blocklist.txt")
+ALLOWLIST = os.path.join(REPO_ROOT, "data", "brand_allowlist.txt")
+
+
+def _read_list(path):
+    if not os.path.isfile(path):
+        return []
+    out = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip().lower()
+            if line:
+                out.append(line)
+    return out
+
+
+def tokens(text):
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(text))
+    return [t for t in re.split(r"[^A-Za-z0-9]+", text.lower()) if t]
+
+
+class BrandScanner:
+    def __init__(self, blocklist=BLOCKLIST, allowlist=ALLOWLIST):
+        self.marks = []
+        for entry in _read_list(blocklist):
+            parts = tokens(entry)
+            if parts:
+                self.marks.append((entry, parts, "".join(parts)))
+        self.allowed = set(_read_list(allowlist))
+
+    def hits(self, text):
+        if str(text).strip().lower() in self.allowed:
+            return []
+        toks = tokens(text)
+        found = []
+        for entry, parts, joined in self.marks:
+            n = len(parts)
+            if joined in toks or any(toks[i:i + n] == parts for i in range(len(toks) - n + 1)):
+                found.append(entry)
+            elif n == 1 and any("".join(toks[i:j]) == joined
+                                for i in range(len(toks)) for j in range(i + 2, min(len(toks), i + 4) + 1)):
+                found.append(entry)
+        return found
+
+    def scan(self, surfaces):
+        """surfaces: iterable of (where, text). Returns list of hit dicts."""
+        out = []
+        for where, text in surfaces:
+            for mark in self.hits(text):
+                out.append({"where": where, "text": str(text), "mark": mark})
+        return out
+
+
+def scene_surfaces():
+    for obj in bpy.data.objects:
+        yield f"object:{obj.name}", obj.name
+        for key in obj.keys():
+            yield f"object:{obj.name}:prop", key
+            if isinstance(obj[key], str):
+                yield f"object:{obj.name}:prop:{key}", obj[key]
+    for mesh in bpy.data.meshes:
+        yield f"mesh:{mesh.name}", mesh.name
+    for mat in bpy.data.materials:
+        yield f"material:{mat.name}", mat.name
+        if mat.node_tree:
+            for node in mat.node_tree.nodes:
+                yield f"material:{mat.name}:node", node.name
+                if node.label:
+                    yield f"material:{mat.name}:node_label", node.label
+    for img in bpy.data.images:
+        yield f"image:{img.name}", img.name
+        if img.filepath:
+            yield f"image:{img.name}:path", img.filepath
+    for tex in bpy.data.textures:
+        yield f"texture:{tex.name}", tex.name
+    for coll in bpy.data.collections:
+        yield f"collection:{coll.name}", coll.name
+    for scene in bpy.data.scenes:
+        for key in scene.keys():
+            yield f"scene:{scene.name}:prop", key
+
+
+def contract_surfaces(contract):
+    kit = contract["kit"]
+    for key in ("id", "name", "prefix", "generator", "description"):
+        if key in kit:
+            yield f"contract:kit.{key}", kit[key]
+    for piece in contract["pieces"]:
+        yield "contract:pieces", piece["id"]
+    for variant in contract["style"]["variants"]:
+        yield "contract:variants", variant
+    for entry in contract["materials"]["palette"]:
+        yield "contract:palette", entry["slot"]
+
+
+def check_brand(contract, extra_surfaces=()):
+    scanner = BrandScanner()
+    found = scanner.scan(list(scene_surfaces()) + list(contract_surfaces(contract)) + list(extra_surfaces))
+    return verdict("LEGAL.BRAND", not found, "no blocklisted brand marks in names or metadata",
+                   hits=found[:50], hit_count=len(found), marks=len(scanner.marks))
+
+
+def check_license(contract):
+    legal = contract["legal"]
+    rel = legal.get("license_file") if legal["license"] == "CC0-1.0" else legal.get("eula_file")
+    path = os.path.join(contract["_dir"], rel) if rel else None
+    problems = []
+    if not path or not os.path.isfile(path):
+        problems.append(f"license file missing: {path}")
+    elif legal["license"] == "CC0-1.0":
+        with open(path, encoding="utf-8") as fh:
+            if "CC0 1.0 Universal" not in fh.read():
+                problems.append(f"{path} is not the CC0 1.0 Universal text")
+    return verdict("LEGAL.LICENSE", not problems, f"license file for {legal['license']} ships with the kit",
+                   path=path, problems=problems)
+
+
+def check_provenance(contract):
+    legal = contract["legal"]
+    external = []
+    if legal["texture_provenance"] == "generator":
+        for img in bpy.data.images:
+            if img.source in {"FILE", "SEQUENCE", "MOVIE"} or img.filepath or img.packed_file:
+                external.append(f"image:{img.name}")
+        for font in bpy.data.fonts:
+            if font.filepath and font.filepath != "<builtin>":
+                external.append(f"font:{font.name}")
+        for world in bpy.data.worlds:
+            if world.node_tree and any(n.type == "TEX_ENVIRONMENT" for n in world.node_tree.nodes):
+                external.append(f"world:{world.name}")
+    return verdict("LEGAL.PROVENANCE", not external,
+                   f"texture provenance '{legal['texture_provenance']}': no external images, fonts or HDRIs",
+                   external=external)
+
+
+def check_ai(contract):
+    return verdict("LEGAL.AI_CONTENT", contract["legal"]["ai_content"] is False,
+                   "generators are deterministic code; no AI-generated content")
+
+
+def run(contract, extra_surfaces=()):
+    return [check_brand(contract, extra_surfaces), check_license(contract),
+            check_provenance(contract), check_ai(contract)]

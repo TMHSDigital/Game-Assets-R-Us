@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Brand blocklist for LEGAL.BRAND. One mark per line, case-insensitive.
+# Matching is on whole tokens: names are split on non-alphanumerics and
+# camelCase, and multi-word marks match as consecutive tokens or joined
+# ("burger king" also matches "BurgerKing" and "burger_king").
+#
+# Deliberately NOT listed because they are ordinary words that show up in
+# asset names: subway, puma, jaguar, mustang, beetle, dove, apple, shell,
+# sonic, dominos, supreme, coach, guess, mini, seat, smart, genesis, polo.
+# Exemptions for a specific kit go in data/brand_allowlist.txt.
+
+# Automotive
+acura
+alfa romeo
+aston martin
+audi
+bentley
+bmw
+bugatti
+buick
+cadillac
+chevrolet
+chevy
+chrysler
+citroen
+dodge
+ferrari
+fiat
+ford
+gmc
+honda
+hummer
+hyundai
+infiniti
+jeep
+kia
+koenigsegg
+lamborghini
+land rover
+lexus
+lincoln motor
+lotus cars
+maserati
+mazda
+mclaren
+mercedes
+mercedes benz
+mitsubishi
+nissan
+pagani
+peugeot
+porsche
+renault
+rolls royce
+subaru
+suzuki
+tesla
+toyota
+volkswagen
+volvo
+
+# Fashion and sportswear
+adidas
+armani
+balenciaga
+burberry
+calvin klein
+cartier
+chanel
+dior
+dolce gabbana
+fendi
+givenchy
+gucci
+hermes paris
+hugo boss
+lacoste
+louis vuitton
+michael kors
+moncler
+new balance
+nike
+off white
+prada
+ralph lauren
+reebok
+rolex
+saint laurent
+tiffany co
+tommy hilfiger
+under armour
+valentino garavani
+versace
+yves saint laurent
+zara
+
+# Fast food and drinks
+arbys
+baskin robbins
+burger king
+carls jr
+chick fil a
+chickfila
+chipotle
+coca cola
+cocacola
+dairy queen
+dunkin
+five guys
+jack in the box
+kfc
+little caesars
+mcdonalds
+mcdonald
+pepsi
+pizza hut
+popeyes
+red bull
+starbucks
+taco bell
+tim hortons
+wendys
+whataburger
+white castle

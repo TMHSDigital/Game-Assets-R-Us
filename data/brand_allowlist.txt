@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Exact names (case-insensitive) that LEGAL.BRAND must not flag even though
+# they contain a blocklisted token. Every entry needs a comment saying why.
+# Empty by default.
