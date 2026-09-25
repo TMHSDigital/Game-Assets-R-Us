@@ -28,9 +28,12 @@ function Split-List {
 
 function Expand-Profiles {
     param([string[]]$Profiles)
-    $list = Split-List $Profiles
-    if ($list.Count -eq 1 -and $list[0] -eq "working") { return , $script:WorkingProfiles }
-    return , $list
+    # "working" expands in place, so "working,roblox" also works.
+    $out = @()
+    foreach ($p in (Split-List $Profiles)) {
+        if ($p -eq "working") { $out += $script:WorkingProfiles } else { $out += $p }
+    }
+    return , @($out | Select-Object -Unique)
 }
 
 function Invoke-Blender {
