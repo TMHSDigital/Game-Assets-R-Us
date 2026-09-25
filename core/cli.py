@@ -8,6 +8,9 @@
 
     blender --background --factory-startup --python core/cli.py -- brandscan PATH [PATH ...]
 
+--stages adds missing prerequisites: generate always runs, export implies
+validate, package implies validate and export.
+
 Exit codes: 0 ok, 1 validation or brand failure, 2 usage or contract error,
 3 profile is a stub (nothing exported).
 """
@@ -23,6 +26,18 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 STAGES = ["generate", "validate", "export", "render", "package"]
+# Stages a stage cannot run without. generate always runs (every other stage
+# works on the generated scene); nothing is exported or packaged unvalidated.
+PREREQUISITES = {"export": ["validate"], "package": ["validate", "export"]}
+
+
+def plan_stages(requested):
+    """Return (stages in pipeline order, prerequisites that were added)."""
+    wanted = set(requested) | {"generate"}
+    for stage in requested:
+        wanted.update(PREREQUISITES.get(stage, []))
+    added = [s for s in STAGES if s in wanted and s not in requested and s != "generate"]
+    return [s for s in STAGES if s in wanted], added
 
 
 def _args(argv):
@@ -58,6 +73,9 @@ def cmd_run(args):
     if unknown:
         print(f"ERROR unknown stages {unknown}; valid: {STAGES}")
         return 2
+    stages, added = plan_stages(stages)
+    if added:
+        print(f"STAGES added prerequisites: {','.join(added)}")
     try:
         info = get(args.kit, args.generator_path)
         contract = load_contract(info.contract_path)

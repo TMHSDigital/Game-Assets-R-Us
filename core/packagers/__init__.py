@@ -26,8 +26,23 @@ class PackagingError(Exception):
 def _license_text(contract):
     legal = contract["legal"]
     rel = legal.get("license_file") if legal["license"] == "CC0-1.0" else legal.get("eula_file")
-    with open(os.path.join(contract["_dir"], rel), encoding="utf-8") as fh:
+    if not rel:
+        raise PackagingError(f"no license file named for license {legal['license']}")
+    path = os.path.join(contract["_dir"], rel)
+    if not os.path.isfile(path):
+        raise PackagingError(f"license file missing: {path}")
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
+
+
+def _load_json(path, what):
+    if not os.path.isfile(path):
+        raise PackagingError(f"{what} missing: {path} (run the validate and export stages first)")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise PackagingError(f"{what} unreadable: {path}: {exc}") from exc
 
 
 def package(contract, info, out_dir, dist_dir):
@@ -36,10 +51,12 @@ def package(contract, info, out_dir, dist_dir):
     exp_dir = os.path.join(out_dir, "exports")
     prev_dir = os.path.join(out_dir, "previews")
     root = f"{kit['id']}-{kit['version']}-{profile['name']}"
-    with open(os.path.join(out_dir, "export_manifest.json"), encoding="utf-8") as fh:
-        manifest = json.load(fh)
-    with open(os.path.join(out_dir, "reports", "summary.json"), encoding="utf-8") as fh:
-        summary = json.load(fh)
+    manifest = _load_json(os.path.join(out_dir, "export_manifest.json"), "export manifest")
+    summary = _load_json(os.path.join(out_dir, "reports", "summary.json"), "validation summary")
+    if summary.get("passed") is not True:
+        raise PackagingError(f"validation did not pass (see {os.path.join(out_dir, 'reports')})")
+    if manifest.get("roundtrip_passed") is not True:
+        raise PackagingError("export round-trip did not pass (see export_manifest.json)")
     demo = None
     if os.path.isfile(os.path.join(prev_dir, "demo_scene.json")):
         with open(os.path.join(prev_dir, "demo_scene.json"), encoding="utf-8") as fh:
