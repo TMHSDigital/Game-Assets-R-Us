@@ -48,8 +48,15 @@ compatibility work.
 
 ## Engine import verification
 Exports are verified by re-importing into Blender (names, triangle counts,
-per-axis size). Still to do: automated import tests inside Unity, Unreal and
-Godot, in particular Unity UCX_ handling (needs an asset postprocessor) and
+per-axis size). Godot is also verified inside the engine:
+`tests/test_godot_import.py` imports all 45 godot-profile GLB files into a
+headless Godot 4 project (Godot 4.5.2 on 2026-09-25) and checks Y-up sizes,
+names and that every `-convcolonly` collider becomes a convex physics shape.
+It runs when Godot is available (`scripts/test.ps1 -Godot <path>` or
+GARU_GODOT) and is skipped in CI.
+
+Still to do: import tests inside Unity and Unreal (neither is installed
+here), in particular Unity UCX_ handling (needs an asset postprocessor) and
 the Unreal unit conversion of meter-based FBX files.
 
 ## Marketplaces

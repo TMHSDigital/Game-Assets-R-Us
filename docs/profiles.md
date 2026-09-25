@@ -12,8 +12,9 @@
 
 Every export is verified by importing it back into Blender and comparing
 object names, triangle counts and per-axis sizes (`export_manifest.json`).
-This proves the axis and unit settings are self-consistent. Import tests in
-each engine are still a TODO (docs/TODO.md).
+This proves the axis and unit settings are self-consistent. The godot
+profile is also verified inside Godot 4 (`tests/test_godot_import.py`);
+Unity and Unreal import tests are still a TODO (docs/TODO.md).
 
 Two presets from Blender-Developer-Tools were deliberately not ported: its
 Godot preset writes Z-up glTF (the glTF spec is Y-up), and its Unreal preset

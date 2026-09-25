@@ -8,7 +8,7 @@ import subprocess
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SPDX_EXT = {".py", ".ps1", ".toml", ".yml", ".yaml"}
+SPDX_EXT = {".py", ".ps1", ".toml", ".yml", ".yaml", ".gd"}
 TEXT_EXT = SPDX_EXT | {".md", ".json", ".txt"}
 VERBATIM = {"LICENSE", "LICENSES/CC0-1.0.txt", "LICENSES/GPL-3.0-or-later.txt",
             "kits/stone-dungeon-wall-sampler/assets/LICENSE-CC0"}

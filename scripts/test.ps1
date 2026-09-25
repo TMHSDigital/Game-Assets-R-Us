@@ -4,10 +4,14 @@
 Run the test suite inside headless Blender, then the repository brand scan.
 
 .PARAMETER Quick
-Skip the determinism test (it launches extra Blender processes).
+Skip the slow tests (determinism and Godot import launch extra processes).
+
+.PARAMETER Godot
+Path to a Godot 4 executable; enables the Godot import test (or set GARU_GODOT).
 #>
 param(
     [string]$Blender,
+    [string]$Godot,
     [switch]$Quick,
     [string]$Pattern = "test_*.py"
 )
@@ -15,6 +19,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot/_common.ps1"
 
 $exe = Resolve-Blender $Blender
+if ($Godot) { $env:GARU_GODOT = (Resolve-Path $Godot).Path }
 $blArgs = @("--python", (Join-Path $RepoRoot "tests/run_tests.py"), "--", "--pattern", $Pattern)
 if ($Quick) { $blArgs += "--skip-slow" }
 $testCode = Invoke-Blender $exe $blArgs

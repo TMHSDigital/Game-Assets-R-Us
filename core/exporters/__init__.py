@@ -116,7 +116,7 @@ def export_scene(scene, out_dir):
         "exporter_settings": settings,
         "files": [{"name": f, "sha256": sha256(os.path.join(exp_dir, f)),
                    "bytes": os.path.getsize(os.path.join(exp_dir, f)),
-                   "roundtrip": results[f]} for f in files],
+                   "objects": expected[f], "roundtrip": results[f]} for f in files],
     }
     manifest["roundtrip_passed"] = all(r["passed"] for r in results.values())
     write_json(os.path.join(out_dir, "export_manifest.json"), manifest)
