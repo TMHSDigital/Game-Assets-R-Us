@@ -13,9 +13,10 @@ param(
     [int]$Seed = -1,
     [string]$Blender,
     [string[]]$GeneratorPath = @(),
-    [switch]$Fix
+    [switch]$Fix,
+    [switch]$Strict
 )
 $ErrorActionPreference = "Stop"
 & "$PSScriptRoot/build-kit.ps1" -Kit $Kit -Profiles $Profiles -Seed $Seed -Blender $Blender `
-    -GeneratorPath $GeneratorPath -Stages "generate,validate" -Fix:$Fix
+    -GeneratorPath $GeneratorPath -Stages "generate,validate" -Fix:$Fix -Strict:$Strict
 exit $LASTEXITCODE
