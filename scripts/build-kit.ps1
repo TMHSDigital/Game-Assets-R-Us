@@ -16,6 +16,8 @@ param(
     [string]$Blender,
     [string[]]$GeneratorPath = @(),
     [string]$Stages = "generate,validate,export,render,package",
+    [string]$BuildDir,
+    [string]$DistDir,
     [switch]$Fix
 )
 $ErrorActionPreference = "Stop"
@@ -23,21 +25,24 @@ $ErrorActionPreference = "Stop"
 
 $exe = Resolve-Blender $Blender
 $cli = Join-Path $RepoRoot "core/cli.py"
+if (-not $BuildDir) { $BuildDir = Join-Path $RepoRoot "build" }
+if (-not $DistDir) { $DistDir = Join-Path $RepoRoot "dist" }
 $results = @()
 foreach ($prof in (Expand-Profiles $Profiles)) {
     Write-Host "=== $Kit / $prof" -ForegroundColor Cyan
-    $blArgs = @("--python", $cli, "--", "run", "--kit", $Kit, "--profile", $prof, "--stages", $Stages)
+    $blArgs = @("--python", $cli, "--", "run", "--kit", $Kit, "--profile", $prof, "--stages", $Stages,
+        "--build-dir", $BuildDir, "--dist-dir", $DistDir)
     if ($Seed -ge 0) { $blArgs += @("--seed", "$Seed") }
     if ($Fix) { $blArgs += "--fix" }
     foreach ($path in (Split-List $GeneratorPath)) { $blArgs += @("--generator-path", $path) }
     $code = Invoke-Blender $exe $blArgs
     $status = switch ($code) { 0 { "ok" } 1 { "FAILED" } 3 { "stub (nothing exported)" } default { "ERROR ($code)" } }
-    $summaryPath = Join-Path $RepoRoot "build/$Kit/$prof/reports/summary.json"
+    $summaryPath = Join-Path $BuildDir "$Kit/$prof/reports/summary.json"
     $pass = $fail = ""
     if (Test-Path $summaryPath) {
         $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
-        $pass = ($summary.checks.PSObject.Properties.Value | Measure-Object -Property pass -Sum).Sum
-        $fail = ($summary.checks.PSObject.Properties.Value | Measure-Object -Property fail -Sum).Sum
+        $pass = [int]($summary.checks.PSObject.Properties.Value | Measure-Object -Property pass -Sum).Sum
+        $fail = [int]($summary.checks.PSObject.Properties.Value | Measure-Object -Property fail -Sum).Sum
     }
     $results += [pscustomobject]@{ Profile = $prof; Status = $status; ChecksPassed = $pass; ChecksFailed = $fail; ExitCode = $code }
 }
