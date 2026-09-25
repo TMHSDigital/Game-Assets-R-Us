@@ -42,9 +42,18 @@ What the probe showed a real exporter must handle:
 
 ## Clip-standard compatibility (stl_print)
 `garu_dogbone_v1` is this project's own design. Compatibility with existing
-terrain clip standards (for example OpenLOCK) is not implemented and no
-third-party clip geometry is used. Check each standard's license before any
-compatibility work.
+terrain clip standards is not implemented and no third-party clip geometry
+is used.
+
+License check, OpenLOCK (2026-09-25, Printable Scenery's own page,
+https://www.printablescenery.com/2020/02/10/the-openlock-license/): free
+for home use; selling designs that use it requires an OpenLOCK license,
+which is free, never expires, is obtained by contacting Printable Scenery
+(https://www.printablescenery.com/helpdesk/), and requires displaying the
+"OpenLOCK compatible" logo and linking back to Printable Scenery. Adding
+OpenLOCK compatibility to paid kits is therefore a business decision (apply
+for the license, accept the logo and link terms) before any geometry work.
+Other clip standards have not been checked.
 
 ## Engine import verification
 Exports are verified by re-importing into Blender (names, triangle counts,
@@ -60,9 +69,22 @@ here), in particular Unity UCX_ handling (needs an asset postprocessor) and
 the Unreal unit conversion of meter-based FBX files.
 
 ## Marketplaces
-Fab and itch.io listing and package requirements have not been verified;
-the zips follow a neutral layout (models, previews, README, LICENSE,
-manifest).
+Checked 2026-09-25 and enforced by `core/packagers/marketplace.py`
+(packaging fails if they are not met):
+- Fab (Asset File Format and Structure Requirements): gallery images at
+  least 1920 x 1080, under 3 MB each, JPEG or PNG, under 25 MB in total;
+  FBX and GLB are accepted exchange formats; listings must state which LODs
+  are included (the generated README does); modular assets must have
+  assembly-friendly pivots and snap on a grid (CORE.PIVOT, CORE.GRID.*, and
+  the demo room check that). The 140-character path limit (stated for UEFN
+  projects) is applied as a conservative limit.
+- itch.io (Creator FAQ): files are delivered exactly as uploaded, no format
+  restrictions; soft limit of 10 files per page (one zip per profile fits).
+
+Still open: Fab's full technical requirements page on support.fab.com could
+not be fetched (TLS certificate error) and should be read before a Fab
+submission; the Fab 3D viewer preview (under 500 MB) and gallery video are
+not produced; itch.io's per-file size limit is not stated in its FAQ.
 
 ## Materials
 Engines receive constant base color and roughness per material slot;

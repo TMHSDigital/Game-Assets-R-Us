@@ -108,8 +108,12 @@ def cmd_run(args):
         render_previews(scene, out_dir)
 
     if "package" in stages:
-        from core.packagers import package
-        zip_path = package(resolved, info, out_dir, args.dist_dir)
+        from core.packagers import PackagingError, package
+        try:
+            zip_path = package(resolved, info, out_dir, args.dist_dir)
+        except PackagingError as exc:
+            print(f"PACKAGING FAILED: {exc}")
+            return 1
         print(f"PACKAGED {zip_path}")
     return 0
 

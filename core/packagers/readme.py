@@ -73,6 +73,19 @@ def kit_readme(contract, info, manifest, summary, demo):
         fx, fy = p["footprint_cells"]
         lines.append(f"| {p['id']} | {fx:g} x {fy:g} | {p['height_cells']:g} | "
                      f"{', '.join(contract['style']['variants'])} |")
+    lines += ["", "## Included LODs and collision", ""]
+    if profile["kind"] == "print":
+        lines.append("Print files have no LODs or collision meshes.")
+    else:
+        n = len(contract["pieces"][0]["lod_tris"])
+        lines += [f"Every piece variant includes LOD0 to LOD{n - 1}:", "",
+                  "| Piece | Triangle budget per LOD |", "|---|---|"]
+        for p in contract["pieces"]:
+            lines.append(f"| {p['id']} | {' / '.join(str(t) for t in p['lod_tris'])} |")
+        col = contract["collider"]
+        if col["type"] != "none":
+            lines += ["", f"Each piece variant also has 1 to {col['max_parts']} convex collision parts "
+                          f"(at most {col['max_faces_per_part']} faces each)."]
     lines += ["", "## Importing", ""] + IMPORT_NOTES.get(profile["name"], []) + [
         "",
         "## How this pack was made",

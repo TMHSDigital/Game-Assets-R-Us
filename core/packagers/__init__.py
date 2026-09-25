@@ -6,15 +6,20 @@ the license and the export manifest. stl_print: an STL zip with the print
 settings sheet, previews and the license. Everything goes to
 dist/<profile>/ (gitignored).
 
-TODO: Fab and itch.io listing requirements are not verified here; see
-docs/TODO.md.
+Packaging fails if a verified marketplace requirement is not met (see
+marketplace.py for the checks and their sources).
 """
 
 import json
 import os
 
+from . import marketplace
 from .readme import kit_readme
 from .zip_det import write_zip
+
+
+class PackagingError(Exception):
+    pass
 
 
 def _license_text(contract):
@@ -53,6 +58,10 @@ def package(contract, info, out_dir, dist_dir):
     entries[f"{root}/validation_summary.json"] = os.path.join(out_dir, "reports", "summary.json")
     entries[f"{root}/LICENSE"] = _license_text(contract).encode("utf-8")
     entries[f"{root}/README.md"] = kit_readme(contract, info, manifest, summary, demo).encode("utf-8")
+
+    problems = marketplace.check(entries)
+    if problems:
+        raise PackagingError("marketplace requirements not met:\n  " + "\n  ".join(problems))
 
     suffix = "stl" if profile["kind"] == "print" else profile["name"]
     zip_path = os.path.join(dist_dir, profile["name"], f"{kit['id']}-{kit['version']}-{suffix}.zip")
