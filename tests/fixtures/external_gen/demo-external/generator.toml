@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Test fixture: an out-of-tree generator, standing in for a private repo.
+# It is found only through GARU_GENERATOR_PATH or --generator-path.
+id = "demo-external"
+version = "0.0.1"
+api_version = 1
+module = "generator.py"
+kit = "kit.toml"
+license = "CC0-1.0"
+description = "Single plinth block used by the registry and pipeline tests."
