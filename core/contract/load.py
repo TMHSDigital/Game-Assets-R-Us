@@ -2,6 +2,7 @@
 """Load a kit contract (TOML), validate it against the base JSON Schema and
 run the semantic checks that JSON Schema cannot express."""
 
+import ntpath
 import os
 import re
 import string
@@ -23,8 +24,12 @@ class ContractError(Exception):
 
 def confined_path(base, rel):
     """Absolute path of `rel` inside directory `base`, or None when `rel` is
-    absolute, uses '..' or resolves (through symlinks) outside `base`."""
-    if not isinstance(rel, str) or not rel or os.path.isabs(rel) or os.path.splitdrive(rel)[0]:
+    absolute, uses '..' or resolves (through symlinks) outside `base`.
+    Windows drive and root forms are refused on every OS, so a kit is judged
+    the same wherever it is built."""
+    if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+        return None
+    if rel[0] in "/\\" or ntpath.isabs(rel) or ntpath.splitdrive(rel)[0]:
         return None
     if ".." in rel.replace("\\", "/").split("/"):
         return None
