@@ -17,6 +17,7 @@ from ..contract.load import confined_path
 from ..validators.legal_checks import scan_names
 from . import marketplace
 from .readme import kit_readme
+from .zip_det import settings as zip_settings
 from .zip_det import write_zip
 
 
@@ -78,7 +79,10 @@ def package(contract, info, out_dir, dist_dir):
     if os.path.isdir(prev_dir):
         for name in sorted(os.listdir(prev_dir)):
             entries[f"{root}/previews/{name}"] = os.path.join(prev_dir, name)
-    entries[f"{root}/manifest.json"] = os.path.join(out_dir, "export_manifest.json")
+    # The shipped manifest is the export manifest plus the zip settings the
+    # archive bytes depend on (zlib build included).
+    shipped = dict(manifest, package={"zip": zip_settings()})
+    entries[f"{root}/manifest.json"] = (json.dumps(shipped, indent=2, sort_keys=True) + "\n").encode("utf-8")
     entries[f"{root}/validation_summary.json"] = os.path.join(out_dir, "reports", "summary.json")
     entries[f"{root}/LICENSE"] = _license_text(contract).encode("utf-8")
     entries[f"{root}/README.md"] = kit_readme(contract, info, manifest, summary, demo).encode("utf-8")
