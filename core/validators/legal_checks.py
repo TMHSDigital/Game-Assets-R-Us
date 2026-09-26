@@ -1,9 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Legal checks.
 
-LEGAL.BRAND       brand blocklist scan over object, mesh, material, image,
-                  node and collection names, custom properties, contract
-                  metadata and export file names
+LEGAL.BRAND       brand blocklist scan over the names of every bpy.data ID
+                  (objects, meshes, materials, images, node groups, worlds,
+                  texts, fonts, actions, ...), node names and labels, text
+                  block contents, file paths, custom property keys and values
+                  (walked recursively) and contract metadata. Export file
+                  names are scanned at packaging time with scan_names().
 LEGAL.LICENSE     the kit ships the license file its contract declares
 LEGAL.PROVENANCE  texture_provenance = "generator" means no external
                   images, fonts or HDRIs exist in the scene
@@ -142,33 +145,75 @@ class BrandScanner:
         return out
 
 
+def _id_collections():
+    """Every ID collection in bpy.data (objects, meshes, node_groups, worlds,
+    texts, fonts, actions, ...), read from RNA so new types are covered."""
+    for prop in bpy.data.bl_rna.properties:
+        struct = prop.fixed_type if prop.type == "COLLECTION" else None
+        while struct is not None and struct.identifier != "ID":
+            struct = struct.base
+        if struct is not None:
+            yield prop.identifier
+
+
+def _props(where, owner, depth=0):
+    """Custom property keys and values of an ID or property group, walked
+    recursively (nested groups, arrays, ID pointers)."""
+    for key in owner.keys():
+        yield f"{where}:prop", key
+        yield from _value(f"{where}:prop:{key}", owner[key], depth + 1)
+
+
+def _value(where, value, depth):
+    if depth > 16:
+        return
+    if isinstance(value, str):
+        yield where, value
+    elif isinstance(value, bpy.types.ID):
+        yield where, value.name
+    elif hasattr(value, "keys") and callable(value.keys):
+        yield from _props(where, value, depth)
+    elif hasattr(value, "to_list") or isinstance(value, (list, tuple)):
+        for item in (value.to_list() if hasattr(value, "to_list") else value):
+            yield from _value(where, item, depth + 1)
+
+
+def _nodes(where, tree):
+    for node in tree.nodes:
+        yield f"{where}:node", node.name
+        if node.label:
+            yield f"{where}:node_label", node.label
+
+
 def scene_surfaces():
-    for obj in bpy.data.objects:
-        yield f"object:{obj.name}", obj.name
-        for key in obj.keys():
-            yield f"object:{obj.name}:prop", key
-            if isinstance(obj[key], str):
-                yield f"object:{obj.name}:prop:{key}", obj[key]
-    for mesh in bpy.data.meshes:
-        yield f"mesh:{mesh.name}", mesh.name
-    for mat in bpy.data.materials:
-        yield f"material:{mat.name}", mat.name
-        if mat.node_tree:
-            for node in mat.node_tree.nodes:
-                yield f"material:{mat.name}:node", node.name
-                if node.label:
-                    yield f"material:{mat.name}:node_label", node.label
-    for img in bpy.data.images:
-        yield f"image:{img.name}", img.name
-        if img.filepath:
-            yield f"image:{img.name}:path", img.filepath
-    for tex in bpy.data.textures:
-        yield f"texture:{tex.name}", tex.name
-    for coll in bpy.data.collections:
-        yield f"collection:{coll.name}", coll.name
-    for scene in bpy.data.scenes:
-        for key in scene.keys():
-            yield f"scene:{scene.name}:prop", key
+    for attr in _id_collections():
+        for datablock in getattr(bpy.data, attr):
+            where = f"{attr}:{datablock.name}"
+            yield where, datablock.name
+            yield from _props(where, datablock)
+            path = getattr(datablock, "filepath", "")
+            if isinstance(path, str) and path and path != "<builtin>":
+                yield f"{where}:path", path
+            tree = datablock if isinstance(datablock, bpy.types.NodeTree) else getattr(datablock, "node_tree", None)
+            if isinstance(tree, bpy.types.NodeTree) and tree.nodes is not None:
+                yield from _nodes(where, tree)
+            if isinstance(datablock, bpy.types.Text):
+                for lineno, line in enumerate(datablock.lines, 1):
+                    yield f"{where}:{lineno}", line.body
+            if isinstance(datablock, bpy.types.Object):
+                for sub in ("vertex_groups", "modifiers", "constraints"):
+                    for item in getattr(datablock, sub, ()):
+                        yield f"{where}:{sub}", item.name
+            if isinstance(datablock, bpy.types.Mesh):
+                for sub in ("uv_layers", "attributes"):
+                    for item in getattr(datablock, sub, ()):
+                        yield f"{where}:{sub}", item.name
+            if isinstance(datablock, bpy.types.Armature):
+                for bone in datablock.bones:
+                    yield f"{where}:bones", bone.name
+            if isinstance(datablock, bpy.types.Key):
+                for block in datablock.key_blocks:
+                    yield f"{where}:key_blocks", block.name
 
 
 def contract_surfaces(contract):
@@ -182,6 +227,12 @@ def contract_surfaces(contract):
         yield "contract:variants", variant
     for entry in contract["materials"]["palette"]:
         yield "contract:palette", entry["slot"]
+
+
+def scan_names(names):
+    """Brand hits in file names or paths (the packager runs this over every
+    entry of the zip, since export file names only exist after validation)."""
+    return BrandScanner().scan((f"file:{name}", name) for name in names)
 
 
 def check_brand(contract, extra_surfaces=()):

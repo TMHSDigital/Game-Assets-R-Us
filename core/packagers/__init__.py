@@ -13,6 +13,7 @@ marketplace.py for the checks and their sources).
 import json
 import os
 
+from ..validators.legal_checks import scan_names
 from . import marketplace
 from .readme import kit_readme
 from .zip_det import write_zip
@@ -63,6 +64,7 @@ def package(contract, info, out_dir, dist_dir):
     entries[f"{root}/README.md"] = kit_readme(contract, info, manifest, summary, demo).encode("utf-8")
 
     problems = marketplace.check(entries)
+    problems += [f"brand mark {h['mark']!r} in file name {h['text']}" for h in scan_names(entries)]
     if problems:
         raise PackagingError("marketplace requirements not met:\n  " + "\n  ".join(problems))
 
