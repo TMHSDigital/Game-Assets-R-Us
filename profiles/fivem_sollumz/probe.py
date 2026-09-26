@@ -91,8 +91,15 @@ def main():
     mod = addon_utils.enable(ADDON, default_set=True)
     folder, name = os.path.split(os.path.join(out, target))
     step("reimport", sorted(bpy.ops.sollumz.import_assets(directory=folder, files=[{"name": name}])))
-    meshes = [o for o in bpy.data.objects if o.type == "MESH"]
-    got = [round(d, 4) for d in meshes[0].dimensions] if meshes else None
+    # The drawable model only (not a collision mesh), measured from its
+    # vertices like the source: dimensions are stale right after import.
+    models = [o for o in bpy.data.objects
+              if o.type == "MESH" and getattr(o, "sollum_type", "") == "sollumz_drawable_model"]
+    step("reimported_models", len(models))
+    got = None
+    if len(models) == 1:
+        cos = [v.co for v in models[0].data.vertices]
+        got = [round(max(c[k] for c in cos) - min(c[k] for c in cos), 4) for k in range(3)]
     step("reimported_dims_m", got)
     result["passed"] = got is not None and all(abs(a - b) < 1e-3 for a, b in zip(got, want_dims))
     return result, out
