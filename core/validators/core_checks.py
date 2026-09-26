@@ -121,13 +121,10 @@ def check_pivot(ctx, ps):
 def check_transforms(ctx, ps):
     out = []
     for obj in ps.mesh_objects() + ps.colliders:
-        rot = max(abs(a) for a in obj.rotation_euler)
-        scl = max(abs(s - 1.0) for s in obj.scale)
-        if obj.rotation_mode == "QUATERNION":
-            rot = obj.rotation_quaternion.angle
-        if rot > 1e-9 or scl > 1e-9:
-            out.append(fail("CORE.XFORM", f"{obj.name}: rotation and scale must be applied",
-                            rotation=list(obj.rotation_euler), scale=list(obj.scale)))
+        err = metrics.basis_error(obj)
+        if err > metrics.XFORM_EPS:
+            out.append(fail("CORE.XFORM", f"{obj.name}: rotation and scale (including deltas) must be applied",
+                            basis_error=err, **metrics.xform_state(obj)))
     return out or [ok("CORE.XFORM", "rotation and scale applied on all objects")]
 
 

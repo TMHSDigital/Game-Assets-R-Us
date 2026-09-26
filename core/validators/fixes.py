@@ -3,7 +3,8 @@
 
 Exactly three fixes exist, and each one is recorded in the piece report with
 its before and after values; nothing is ever changed silently:
-  FIX.XFORM   apply rotation and scale into the mesh data
+  FIX.XFORM   apply rotation and scale (any rotation mode, including the
+              delta transforms) into the mesh data
   FIX.ORIGIN  move the origin to the contract pivot rule, keeping the mesh
               where it is in the world
   FIX.RENAME  rename objects to the contract naming patterns
@@ -16,16 +17,20 @@ from . import metrics
 
 
 def _apply_rot_scale(obj):
-    before = {"rotation": list(obj.rotation_euler), "scale": list(obj.scale)}
+    before = metrics.xform_state(obj)
     # matrix_basis, not matrix_world: matrix_world is stale until the
-    # depsgraph updates, which would silently drop the rotation.
+    # depsgraph updates, which would silently drop the rotation. It also
+    # covers every rotation mode and the delta transforms.
     loc, rot, scale = obj.matrix_basis.decompose()
     basis = rot.to_matrix().to_4x4() @ Matrix.Diagonal(scale.to_4d())
     obj.data.transform(basis)
     obj.data.update()
-    obj.matrix_basis = Matrix.Translation(loc)
-    return {"id": "FIX.XFORM", "object": obj.name, "before": before,
-            "after": {"rotation": list(obj.rotation_euler), "scale": list(obj.scale)}}
+    obj.rotation_euler = obj.delta_rotation_euler = (0.0, 0.0, 0.0)
+    obj.rotation_quaternion = obj.delta_rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
+    obj.rotation_axis_angle = (0.0, 0.0, 1.0, 0.0)
+    obj.scale = obj.delta_scale = (1.0, 1.0, 1.0)
+    obj.location = loc - obj.delta_location
+    return {"id": "FIX.XFORM", "object": obj.name, "before": before, "after": metrics.xform_state(obj)}
 
 
 def _set_origin(obj, rule):
@@ -45,8 +50,7 @@ def apply(contract, ps, expected):
     """expected: {slot: name} from core_checks.expected_names."""
     records = []
     for obj in ps.mesh_objects() + ps.colliders:
-        rot_scale = any(abs(a) > 1e-9 for a in obj.rotation_euler) or any(abs(s - 1) > 1e-9 for s in obj.scale)
-        if rot_scale:
+        if metrics.basis_error(obj) > metrics.XFORM_EPS:
             records.append(_apply_rot_scale(obj))
     for obj in ps.mesh_objects():
         rec = _set_origin(obj, contract["style"]["pivot_rule"])
