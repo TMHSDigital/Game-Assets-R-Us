@@ -177,7 +177,9 @@ def export(scene, exp_dir):
         hi = [max(v.co[k] for v in ps.lod0.data.vertices) for k in range(3)]
         ps.lod0.data.calc_loop_triangles()
         expected[name] = {"dims": [b - a for a, b in zip(lo, hi)], "tris": len(ps.lod0.data.loop_triangles),
-                          "lods": 1 + len(ps.lods), "mem_bytes": _estimate_bytes([o.data for o in ps.mesh_objects()])}
+                          "lods": 1 + len(ps.lods), "mem_bytes": _estimate_bytes([o.data for o in ps.mesh_objects()]),
+                          # Same condition build_drawables embeds a bound under.
+                          "collision": bool(profile["embedded_collision"] and ps.colliders)}
     drawables = build_drawables(scene, sz, textures)
     for obj in bpy.context.view_layer.objects:
         obj.select_set(False)
@@ -226,8 +228,10 @@ def _verify(exp_dir, files, expected):
                            if getattr(model.sz_lods, level).has_mesh)
                 if lods != want["lods"]:
                     problems.append(f"{lods} LOD levels != {want['lods']}")
-                if not bounds:
+                if want["collision"] and not bounds:
                     problems.append("no embedded collision")
+                elif bounds and not want["collision"]:
+                    problems.append(f"{len(bounds)} unexpected embedded collision bounds")
         results[rel] = {"passed": not problems, "problems": problems, "objects": 1}
     return results
 
