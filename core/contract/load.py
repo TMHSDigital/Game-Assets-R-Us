@@ -110,10 +110,20 @@ def semantic_errors(data):
     return errors
 
 
+def read_toml(path):
+    """Parse a TOML file; syntax and read errors become a ContractError."""
+    try:
+        with open(path, "rb") as fh:
+            return tomllib.load(fh)
+    except tomllib.TOMLDecodeError as exc:
+        raise ContractError(path, [("/", f"TOML syntax error: {exc}")]) from exc
+    except OSError as exc:
+        raise ContractError(path, [("/", f"cannot read file: {exc}")]) from exc
+
+
 def load_contract(path):
     """Parse and validate a kit.toml. Raises ContractError on any problem."""
-    with open(path, "rb") as fh:
-        data = tomllib.load(fh)
+    data = read_toml(path)
     schema = schema_lite.load_schema(BASE_SCHEMA)
     errors = schema_lite.validate(data, schema)
     if not errors:

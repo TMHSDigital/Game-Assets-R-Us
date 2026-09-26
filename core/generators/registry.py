@@ -67,10 +67,17 @@ def _candidate_dirs(root):
             if os.path.isfile(os.path.join(root, name, MANIFEST))]
 
 
+def _load_toml(path):
+    try:
+        with open(path, "rb") as fh:
+            return tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise RegistryError(f"invalid manifest {path}: {exc}") from exc
+
+
 def _read_manifest(directory, source):
     path = os.path.join(directory, MANIFEST)
-    with open(path, "rb") as fh:
-        data = tomllib.load(fh)
+    data = _load_toml(path)
     errors = schema_lite.validate(data, schema_lite.load_schema(MANIFEST_SCHEMA))
     if errors:
         detail = "; ".join(f"{p or '/'}: {m}" for p, m in errors)
@@ -93,30 +100,55 @@ def _read_manifest(directory, source):
         source=source)
 
 
-def discover(extra_paths=()):
-    """Return {generator_id: GeneratorInfo}. Raises RegistryError on conflicts."""
-    found = {}
+def _generator_dirs(extra_paths):
+    """(directory, source) for every generator directory, each once."""
     seen_dirs = set()
     for root, source in search_paths(extra_paths):
         for directory in _candidate_dirs(root):
             real = os.path.realpath(directory)
-            if real in seen_dirs:
-                continue
-            seen_dirs.add(real)
-            info = _read_manifest(directory, source)
-            if info.id in found:
-                raise RegistryError(
-                    f"duplicate generator id '{info.id}': {found[info.id].directory} and {info.directory}")
-            found[info.id] = info
+            if real not in seen_dirs:
+                seen_dirs.add(real)
+                yield directory, source
+
+
+def discover(extra_paths=()):
+    """Return {generator_id: GeneratorInfo}, validating every manifest.
+    Raises RegistryError on any invalid manifest or duplicate id."""
+    found = {}
+    for directory, source in _generator_dirs(extra_paths):
+        info = _read_manifest(directory, source)
+        if info.id in found:
+            raise RegistryError(
+                f"duplicate generator id '{info.id}': {found[info.id].directory} and {info.directory}")
+        found[info.id] = info
     return found
 
 
 def get(generator_id, extra_paths=()):
-    found = discover(extra_paths)
-    if generator_id not in found:
-        raise RegistryError(f"no generator '{generator_id}'; found {sorted(found)} "
-                            f"in {[p for p, _ in search_paths(extra_paths)]}")
-    return found[generator_id]
+    """The generator with this id. Only manifests declaring this id are
+    fully validated (and must be unique), so a broken manifest elsewhere on
+    the search path cannot break the build of an unrelated kit; manifests
+    that cannot be parsed at all are skipped with a warning."""
+    matches, ids, unreadable = [], set(), []
+    for directory, source in _generator_dirs(extra_paths):
+        try:
+            data = _load_toml(os.path.join(directory, MANIFEST))
+        except RegistryError as exc:
+            unreadable.append(str(exc))
+            continue
+        ids.add(str(data.get("id")))
+        if data.get("id") == generator_id:
+            matches.append((directory, source))
+    for message in unreadable:
+        print(f"WARNING skipped {message}")
+    if not matches:
+        raise RegistryError(f"no generator '{generator_id}'; found {sorted(ids)} "
+                            f"in {[p for p, _ in search_paths(extra_paths)]}"
+                            + (f"; {len(unreadable)} manifest(s) could not be parsed" if unreadable else ""))
+    if len(matches) > 1:
+        raise RegistryError(f"duplicate generator id '{generator_id}': "
+                            + " and ".join(os.path.abspath(d) for d, _ in matches))
+    return _read_manifest(*matches[0])
 
 
 def contract_mismatches(info, contract):
