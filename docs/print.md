@@ -27,7 +27,7 @@ check (docs/TODO.md).
 
 | Check | How |
 |---|---|
-| STL.WATERTIGHT / STL.NONMANIFOLD | no boundary edges, every edge has two faces, positive volume |
+| STL.WATERTIGHT / STL.NONMANIFOLD | no boundary edges, every edge has two faces wound the same way (no flipped faces), no bowtie vertices, positive volume |
 | STL.SELFX | BVH overlap between faces that share no vertex |
 | STL.WALL.MIN | one ray per triangle along the inward normal; a sample is a wall when the ray reaches an opposed surface (normals facing apart within 60 deg); fails below `min_wall_mm` |
 | STL.OVERHANG | area histogram of downward faces by angle; faces steeper than `max_overhang_deg` pass only as flat bridges no wider than `max_bridge_mm`, or within `max_overhang_area_mm2` in total |

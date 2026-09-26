@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """STL print checks, run on each printable tile (and the clip).
 
-STL.WATERTIGHT    no boundary edges, positive signed volume
-STL.NONMANIFOLD   non-manifold edge count is zero
+STL.WATERTIGHT    no boundary edges, consistent winding, positive signed volume
+STL.NONMANIFOLD   non-manifold edge and vertex counts are zero
 STL.SELFX         no self-intersecting faces
 STL.WALL.MIN      minimum wall thickness by BVH ray sampling
 STL.OVERHANG      overhang angle histogram against max_overhang_deg
@@ -25,12 +25,13 @@ PLATE_EPS = 1e-3
 def check_watertight(obj):
     h = metrics.hygiene(obj)
     return [
-        verdict("STL.WATERTIGHT", h["boundary_edges"] == 0 and h["signed_volume"] > 0,
-                "closed surface with outward normals", boundary_edges=h["boundary_edges"],
-                signed_volume_mm3=h["signed_volume"], shells=h["shells"]),
-        verdict("STL.NONMANIFOLD", h["non_manifold_edges"] == 0 and h["loose_verts"] == 0,
-                "non-manifold edge count must be zero", non_manifold_edges=h["non_manifold_edges"],
-                loose_verts=h["loose_verts"]),
+        verdict("STL.WATERTIGHT", h["boundary_edges"] == 0 and h["flipped_edges"] == 0 and h["signed_volume"] > 0,
+                "closed surface with consistent, outward normals", boundary_edges=h["boundary_edges"],
+                flipped_edges=h["flipped_edges"], signed_volume_mm3=h["signed_volume"], shells=h["shells"]),
+        verdict("STL.NONMANIFOLD", h["non_manifold_edges"] == 0 and h["non_manifold_verts"] == 0
+                and h["loose_verts"] == 0,
+                "non-manifold edge and vertex counts must be zero", non_manifold_edges=h["non_manifold_edges"],
+                non_manifold_verts=h["non_manifold_verts"], loose_verts=h["loose_verts"]),
         verdict("STL.SELFX", h["self_intersections"] == 0,
                 "no self-intersecting faces", self_intersections=h["self_intersections"]),
     ]

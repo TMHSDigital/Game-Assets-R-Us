@@ -34,6 +34,13 @@ def hygiene(obj):
             "faces": faces,
             "non_manifold_edges": sum(1 for e in bm.edges if len(e.link_faces) != 2),
             "boundary_edges": sum(1 for e in bm.edges if len(e.link_faces) == 1),
+            # Two faces whose winding disagrees across their shared edge: one
+            # of them is flipped. Signed volume alone misses this when the
+            # flipped face lies on a plane through the origin.
+            "flipped_edges": sum(1 for e in bm.edges if len(e.link_faces) == 2 and not e.is_contiguous),
+            # Bowtie vertices (two fans meeting at a point) and any vertex on
+            # a boundary or non-manifold edge.
+            "non_manifold_verts": sum(1 for v in bm.verts if v.link_edges and not v.is_manifold),
             "loose_verts": sum(1 for v in bm.verts if not v.link_edges),
             "loose_edges": sum(1 for e in bm.edges if not e.link_faces),
             "zero_area_faces": sum(1 for f in bm.faces if f.calc_area() <= AREA_EPS),

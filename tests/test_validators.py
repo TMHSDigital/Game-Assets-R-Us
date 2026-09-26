@@ -9,13 +9,39 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures"))
 
+import bmesh  # noqa: E402
 import bpy  # noqa: E402
 import make_broken as fx  # noqa: E402
 
 from core.generators import api  # noqa: E402
+from core.geometry import prims  # noqa: E402
 from core.geometry import lod as lod_mod  # noqa: E402
 from core.geometry import uv as uv_mod  # noqa: E402
 from core.validators import core_checks, fixes, legal_checks, stl_checks  # noqa: E402
+
+
+def flip_bottom(obj):
+    """Invert the winding of the faces on z = 0. With the pivot on that
+    plane the signed volume does not change, so only the winding check can
+    see it."""
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bmesh.ops.reverse_faces(bm, faces=[f for f in bm.faces if all(abs(v.co.z) < 1e-6 for v in f.verts)])
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
+
+
+def bowtie(name):
+    """Two closed boxes touching at a single corner vertex."""
+    bm = bmesh.new()
+    prims.add_box(bm, (0, 0, 0), (10, 10, 10))
+    prims.add_box(bm, (10, 10, 10), (20, 20, 20))
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-6)
+    prims.recalc_normals(bm)
+    obj = prims.to_object(bm, name)
+    bm.free()
+    return obj
 
 
 def status(checks, check_id):
@@ -60,6 +86,14 @@ class CoreCheckFixtures(unittest.TestCase):
         ctx = self.ctx(good, bad)
         self.assertEqual(status(core_checks.check_mesh(ctx, good), "CORE.MESH.MANIFOLD"), "pass")
         self.assertEqual(status(core_checks.check_mesh(ctx, bad), "CORE.MESH.MANIFOLD"), "fail")
+
+    def test_flipped_face_fails_manifold(self):
+        ps = fx.piece_set(flip_bottom(fx.wall(self.c)))
+        ctx = self.ctx(ps)
+        checks = core_checks.check_mesh(ctx, ps)
+        self.assertGreater(checks[0].detail["signed_volume"], 0)
+        self.assertGreater(checks[0].detail["flipped_edges"], 0)
+        self.assertEqual(status(checks, "CORE.MESH.MANIFOLD"), "fail")
 
     def test_self_intersection_fails_selfx(self):
         bad = fx.piece_set(fx.two_overlapping_boxes("SM_SDW_wall_straight_clean"))
@@ -129,6 +163,16 @@ class StlCheckFixtures(unittest.TestCase):
         self.assertEqual(status(checks, "STL.NONMANIFOLD"), "fail")
         good = fx.box("closed", (0, 0, 0), (20, 20, 20))
         self.assertEqual(status(stl_checks.check_watertight(good), "STL.WATERTIGHT"), "pass")
+        self.assertEqual(status(stl_checks.check_watertight(good), "STL.NONMANIFOLD"), "pass")
+
+    def test_flipped_face_fails_watertight(self):
+        flipped = flip_bottom(fx.box("flipped", (0, 0, 0), (20, 20, 20)))
+        self.assertEqual(status(stl_checks.check_watertight(flipped), "STL.WATERTIGHT"), "fail")
+
+    def test_bowtie_vertex_fails_nonmanifold(self):
+        checks = stl_checks.check_watertight(bowtie("bowtie"))
+        self.assertEqual(status(checks, "STL.WATERTIGHT"), "pass")
+        self.assertEqual(status(checks, "STL.NONMANIFOLD"), "fail")
 
     def test_thin_wall_fails_min_wall(self):
         thin = fx.box("thin", (0, 0, 0), (20, 20, 0.5))

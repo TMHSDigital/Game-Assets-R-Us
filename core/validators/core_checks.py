@@ -158,10 +158,11 @@ def check_naming(ctx, ps):
 
 def check_mesh(ctx, ps):
     h = metrics.hygiene(ps.lod0)
-    manifold = h["non_manifold_edges"] == 0 and h["boundary_edges"] == 0 and h["signed_volume"] > 0
+    manifold = (h["non_manifold_edges"] == 0 and h["boundary_edges"] == 0 and h["non_manifold_verts"] == 0
+                and h["flipped_edges"] == 0 and h["signed_volume"] > 0)
     return [
         verdict("CORE.MESH.MANIFOLD", manifold,
-                "LOD0 must be closed and manifold with outward normals", **h),
+                "LOD0 must be closed and manifold with consistent, outward normals", **h),
         verdict("CORE.MESH.LOOSE", h["loose_verts"] == 0 and h["loose_edges"] == 0 and h["zero_area_faces"] == 0,
                 "no loose vertices, loose edges or zero-area faces",
                 loose_verts=h["loose_verts"], loose_edges=h["loose_edges"], zero_area_faces=h["zero_area_faces"]),
