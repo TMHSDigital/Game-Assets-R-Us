@@ -85,6 +85,28 @@ def _shells(bm):
     return shells
 
 
+XFORM_EPS = 1e-6
+
+
+def basis_error(obj):
+    """Largest deviation of the object's own rotation and scale from
+    identity. matrix_basis combines every rotation mode (Euler, quaternion,
+    axis-angle) with the delta transforms and needs no depsgraph update."""
+    m = obj.matrix_basis.to_3x3()
+    return max(abs(m[i][j] - (1.0 if i == j else 0.0)) for i in range(3) for j in range(3))
+
+
+def xform_state(obj):
+    """Rotation and scale as the user sees them, for reports."""
+    rot = {"QUATERNION": obj.rotation_quaternion, "AXIS_ANGLE": obj.rotation_axis_angle}
+    return {"rotation_mode": obj.rotation_mode,
+            "rotation": list(rot.get(obj.rotation_mode, obj.rotation_euler)),
+            "scale": list(obj.scale),
+            "delta_rotation": list(obj.delta_rotation_quaternion if obj.rotation_mode in rot
+                                   else obj.delta_rotation_euler),
+            "delta_scale": list(obj.delta_scale)}
+
+
 def bbox_local(obj):
     cos = [v.co for v in obj.data.vertices]
     lo = Vector((min(c.x for c in cos), min(c.y for c in cos), min(c.z for c in cos)))

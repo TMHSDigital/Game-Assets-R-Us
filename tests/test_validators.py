@@ -160,6 +160,38 @@ class CoreCheckFixtures(unittest.TestCase):
         self.assertEqual(status(core_checks.check_naming(ctx, ps), "CORE.NAMING"), "pass")
         self.assertEqual(status(core_checks.check_pivot(ctx, ps), "CORE.PIVOT"), "pass")
 
+    def test_xform_covers_quaternion_axis_angle_and_deltas(self):
+        def quaternion(o):
+            o.rotation_mode = "QUATERNION"
+            o.rotation_quaternion = (math.cos(math.pi / 4), 0.0, 0.0, math.sin(math.pi / 4))
+
+        def axis_angle(o):
+            o.rotation_mode = "AXIS_ANGLE"
+            o.rotation_axis_angle = (math.pi / 2, 0.0, 0.0, 1.0)
+
+        def delta_scale(o):
+            o.delta_scale = (1.0, 1.0, 2.0)
+
+        def delta_rotation(o):
+            o.delta_rotation_euler = (0.0, 0.0, math.pi / 2)
+
+        for break_it in (quaternion, axis_angle, delta_scale, delta_rotation):
+            self.c = fx.fresh("unity")
+            obj = fx.wall(self.c)
+            obj.location = (2.0, 4.0, 0.0)
+            break_it(obj)
+            bpy.context.view_layer.update()
+            world = sorted(tuple(round(c, 4) for c in obj.matrix_world @ v.co) for v in obj.data.vertices)
+            ps = fx.piece_set(obj)
+            ctx = self.ctx(ps)
+            self.assertEqual(status(core_checks.check_transforms(ctx, ps), "CORE.XFORM"), "fail", break_it.__name__)
+            records = fixes.apply(self.c, ps, core_checks.expected_names(ctx, ps))
+            self.assertIn("FIX.XFORM", {r["id"] for r in records}, break_it.__name__)
+            self.assertEqual(status(core_checks.check_transforms(ctx, ps), "CORE.XFORM"), "pass", break_it.__name__)
+            bpy.context.view_layer.update()
+            after = sorted(tuple(round(c, 4) for c in obj.matrix_world @ v.co) for v in obj.data.vertices)
+            self.assertEqual(world, after, break_it.__name__)
+
     def test_uv_overlap_detected(self):
         a = ((0, 0), (1, 0), (0, 1))
         self.assertAlmostEqual(uv_mod.intersection_area(a, a), 0.5)
