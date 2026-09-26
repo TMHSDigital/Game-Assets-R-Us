@@ -51,11 +51,13 @@ def cycles_bake(scene):
     if hasattr(cyc, "use_denoising"):
         cyc.use_denoising = False
     bake = scene.render.bake
-    bake.use_pass_direct = False
-    bake.use_pass_indirect = False
-    bake.use_pass_color = True
-    bake.normal_space = "TANGENT"
-    bake.margin = 0
+    # Every bake setting set here or by a caller inside the block (Roblox
+    # sets margin) is put back afterwards.
+    bake_settings = {"use_pass_direct": False, "use_pass_indirect": False, "use_pass_color": True,
+                     "normal_space": "TANGENT", "margin": 0}
+    saved_bake = {k: getattr(bake, k) for k in bake_settings}
+    for k, v in bake_settings.items():
+        setattr(bake, k, v)
     try:
         yield
     finally:
@@ -63,6 +65,8 @@ def cycles_bake(scene):
         cyc.device, cyc.samples, cyc.seed = saved["device"], saved["samples"], saved["seed"]
         if hasattr(cyc, "use_denoising"):
             cyc.use_denoising = saved["denoise"]
+        for k, v in saved_bake.items():
+            setattr(bake, k, v)
 
 
 def _tile_plane(contract):

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Roblox profile: every FBX meets the verified Roblox limits and the
 single-material, single-UV, embedded-texture layout, at stud scale.
-Slow (builds the profile in a separate Blender process)."""
+Slow (builds the profile in a separate Blender process). A failed piece
+bake leaves no bake nodes or bake settings behind."""
 
 import json
 import os
@@ -9,9 +10,11 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 import bpy
 
+from core import pipeline, roblox
 from core.contract import load_contract, resolve
 from core.generators import get
 
@@ -66,6 +69,36 @@ class RobloxExport(unittest.TestCase):
             self.assertEqual(problems, [])
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class FailedBake(unittest.TestCase):
+    def test_failed_bake_leaves_materials_and_settings_clean(self):
+        pipeline.reset_scene()
+        scene = bpy.context.scene
+        settings = scene.render.bake
+        settings.margin, settings.use_pass_direct, settings.normal_space = 7, True, "OBJECT"
+        engine = scene.render.engine
+        bpy.ops.mesh.primitive_cube_add()
+        obj = bpy.context.active_object
+        # No UV layer at all: Cycles refuses to bake.
+        while obj.data.uv_layers:
+            obj.data.uv_layers.remove(obj.data.uv_layers[0])
+        mat = bpy.data.materials.new("M_Shared")
+        mat.use_nodes = True
+        obj.data.materials.append(mat)
+        contract = {"profile": {"piece_texture_size": 8, "limits": {}},
+                    "uv": {"lightmap_channel": "Lightmap", "tiling_channel": "UVMap"},
+                    "textures": {"maps": ["base_color"]}}
+        kit_scene = SimpleNamespace(contract=contract, sets=[SimpleNamespace(lod0=obj)])
+        tmp = tempfile.mkdtemp(prefix="garu_rbx_fail_")
+        try:
+            with self.assertRaises(RuntimeError):
+                roblox.prepare(kit_scene, tmp)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual([n.type for n in mat.node_tree.nodes if n.type == "TEX_IMAGE"], [])
+        self.assertEqual((settings.margin, settings.use_pass_direct, settings.normal_space), (7, True, "OBJECT"))
+        self.assertEqual(scene.render.engine, engine)
 
 
 if __name__ == "__main__":

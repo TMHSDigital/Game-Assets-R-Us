@@ -70,17 +70,22 @@ def prepare(scene, textures_dir):
                     bake_type = "NORMAL"
                 else:
                     bake_type = bake.MAPS[map_name][0]
-                for mat in mesh.materials:
-                    node = mat.node_tree.nodes.new("ShaderNodeTexImage")
-                    node.image = image
-                    mat.node_tree.nodes.active = node
-                for other in bpy.context.view_layer.objects:
-                    other.select_set(other == obj)
-                bpy.context.view_layer.objects.active = obj
-                result = bpy.ops.object.bake(type=bake_type)
-                for mat in mesh.materials:
-                    tree = mat.node_tree
-                    for node in [n for n in tree.nodes if n.type == "TEX_IMAGE" and n.image == image]:
+                # The bake target nodes go into the shared palette materials;
+                # remove them even when the bake raises, or later profiles in
+                # the same run would render with them.
+                added = []
+                try:
+                    for mat in mesh.materials:
+                        node = mat.node_tree.nodes.new("ShaderNodeTexImage")
+                        added.append((mat.node_tree, node))
+                        node.image = image
+                        mat.node_tree.nodes.active = node
+                    for other in bpy.context.view_layer.objects:
+                        other.select_set(other == obj)
+                    bpy.context.view_layer.objects.active = obj
+                    result = bpy.ops.object.bake(type=bake_type)
+                finally:
+                    for tree, node in added:
                         tree.nodes.remove(node)
                 if result != {"FINISHED"}:
                     raise RuntimeError(f"bake {map_name} of {obj.name} returned {result}")
