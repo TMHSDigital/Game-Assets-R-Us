@@ -32,7 +32,10 @@ MAPS = {
     "roughness": ("ROUGHNESS", "Non-Color"),
     "normal": ("EMIT", "Non-Color"),
 }
-NORMAL_STRENGTH = 6.0  # tangent-space slope per unit of height per pixel-width fraction
+# Tangent-space slope per unit of height per UV unit (one texture tile), so
+# the look does not change with [textures] size. 6/1024 keeps the 1024 px
+# default exactly as it was when the slope was taken per pixel with 6.0.
+NORMAL_STRENGTH = 6.0 / 1024
 
 
 @contextlib.contextmanager
@@ -125,7 +128,8 @@ def normal_from_height(height, target, strength=NORMAL_STRENGTH):
     height.pixels.foreach_get(px)
     h = px[0::4]
     out = array.array("f", [0.0]) * (s * s * 4)
-    k = strength
+    # Differences are per pixel; s pixels span one UV unit.
+    k = strength * s
     for y in range(s):
         row, up, down = y * s, ((y + 1) % s) * s, ((y - 1) % s) * s
         for x in range(s):
