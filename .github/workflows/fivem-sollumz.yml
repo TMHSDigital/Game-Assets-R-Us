@@ -65,20 +65,20 @@ jobs:
         run: |
           set -euo pipefail
           xvfb-run -a "$GARU_BLENDER" --background --factory-startup \
-            --python profiles/fivem_sollumz/probe.py -- "$RUNNER_TEMP/probe_out" "$RUNNER_TEMP/szio_site"
+            --python-exit-code 1 --python profiles/fivem_sollumz/probe.py -- "$RUNNER_TEMP/probe_out" "$RUNNER_TEMP/szio_site"
 
       - name: Build, validate, export and verify the fivem_sollumz profile
         run: |
           set -euo pipefail
           echo "GARU_SZIO_SITE=$RUNNER_TEMP/szio_site" >> "$GITHUB_ENV"
           GARU_SZIO_SITE="$RUNNER_TEMP/szio_site" xvfb-run -a "$GARU_BLENDER" --background --factory-startup \
-            --python core/cli.py -- run --kit stone-dungeon-wall-sampler --profile fivem_sollumz
+            --python-exit-code 1 --python core/cli.py -- run --kit stone-dungeon-wall-sampler --profile fivem_sollumz
 
       - name: FiveM determinism and Sollumz re-import test
         run: |
           set -euo pipefail
           GARU_BLENDER_45="$GARU_BLENDER" GARU_SOLLUMZ_USER="$BLENDER_USER_RESOURCES" \
-            xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python tests/run_tests.py -- --pattern test_fivem.py
+            xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python-exit-code 1 --python tests/run_tests.py -- --pattern test_fivem.py
 
       - name: Upload probe results
         if: always()

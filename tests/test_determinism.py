@@ -24,7 +24,7 @@ SLOW = os.environ.get("GARU_SKIP_SLOW") == "1"
 
 
 def build(profile, seed, build_dir):
-    cmd = [bpy.app.binary_path, "--background", "--factory-startup", "--python", CLI, "--",
+    cmd = [bpy.app.binary_path, "--background", "--factory-startup", "--python-exit-code", "1", "--python", CLI, "--",
            "run", "--kit", KIT, "--profile", profile, "--seed", str(seed),
            "--stages", "generate,export", "--build-dir", build_dir]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)

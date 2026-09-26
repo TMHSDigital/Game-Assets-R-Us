@@ -90,7 +90,7 @@ jobs:
       - name: Brand blocklist scan (repository)
         run: |
           set -euo pipefail
-          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python-exit-code 1 --python core/cli.py -- \
             brandscan kits profiles README.md
 
       - name: Test suite (unit, validator fixtures, external generator, determinism)
@@ -104,7 +104,7 @@ jobs:
       - name: Brand blocklist scan (build outputs)
         run: |
           set -euo pipefail
-          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python core/cli.py -- \
+          xvfb-run -a "$GARU_BLENDER" --background --factory-startup --python-exit-code 1 --python core/cli.py -- \
             brandscan build dist
 
       - name: Upload JSON reports on failure
