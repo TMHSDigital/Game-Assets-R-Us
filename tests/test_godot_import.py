@@ -43,7 +43,7 @@ class GodotImport(unittest.TestCase):
 
     def test_godot_imports_sampler(self):
         build = os.path.join(self.tmp, "build")
-        _run([bpy.app.binary_path, "--background", "--factory-startup", "--python",
+        _run([bpy.app.binary_path, "--background", "--factory-startup", "--python-exit-code", "1", "--python",
               os.path.join(ROOT, "core", "cli.py"), "--", "run", "--kit", KIT, "--profile", "godot",
               "--seed", "1337", "--stages", "generate,export", "--build-dir", build])
         exports = os.path.join(build, KIT, "godot", "exports")

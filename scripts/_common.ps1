@@ -50,6 +50,6 @@ function Get-ProfileStatus {
 function Invoke-Blender {
     # Runs Blender headless and streams its output. Returns the exit code.
     param([string]$Exe, [string[]]$Arguments)
-    & $Exe --background --factory-startup @Arguments 2>&1 | ForEach-Object { "$_" } | Write-Host
+    & $Exe --background --factory-startup --python-exit-code 1 @Arguments 2>&1 | ForEach-Object { "$_" } | Write-Host
     return $LASTEXITCODE
 }
