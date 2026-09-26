@@ -78,6 +78,17 @@ def _type_ok(value, name):
     raise SchemaError(f"unknown type '{name}'")
 
 
+def _equal(a, b):
+    """JSON equality: unlike Python ==, true/false never equal 1/0."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        return len(a) == len(b) and all(_equal(x, y) for x, y in zip(a, b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_equal(a[k], b[k]) for k in a)
+    return a == b
+
+
 def _resolve_ref(root, ref):
     if not ref.startswith("#/"):
         raise SchemaError(f"only local $ref is supported, got '{ref}'")
@@ -103,9 +114,9 @@ def _validate(value, schema, root, path, errors):
             errors.append((path, f"expected type {'/'.join(types)}, got {type(value).__name__}"))
             return
 
-    if "const" in schema and value != schema["const"]:
+    if "const" in schema and not _equal(value, schema["const"]):
         errors.append((path, f"must equal {schema['const']!r}"))
-    if "enum" in schema and value not in schema["enum"]:
+    if "enum" in schema and not any(_equal(value, e) for e in schema["enum"]):
         errors.append((path, f"must be one of {schema['enum']!r}, got {value!r}"))
 
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -134,7 +145,7 @@ def _validate(value, schema, root, path, errors):
         if schema.get("uniqueItems"):
             seen = []
             for item in value:
-                if item in seen:
+                if any(_equal(item, s) for s in seen):
                     errors.append((path, f"items must be unique, {item!r} repeats"))
                     break
                 seen.append(item)

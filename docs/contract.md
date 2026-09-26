@@ -5,8 +5,11 @@ Every kit has a `kit.toml` contract. It is validated in two layers:
 1. `core/contract/base.schema.json` (JSON Schema draft 2020-12) validates
    everything except the `[profiles.*]` tables, followed by semantic checks
    JSON Schema cannot express (strictly decreasing LOD budgets, unique piece
-   ids, a `[print]` block when `stl_print` is exported, an EULA file for
-   commercial kits, `ai_content = false`).
+   ids, a `[print]` block when `stl_print` is exported, a license file for
+   CC0 kits and an EULA file for commercial kits, both inside the kit
+   directory, `ai_content = false`, `min_px_per_cell <= max_px_per_cell`,
+   `[profiles.<name>]` only for profiles in `exports.profiles`, safe name
+   templates).
 2. For each export profile, `profiles/<name>/profile.toml` (defaults) is
    merged with the kit's `[profiles.<name>]` overrides and validated against
    `profiles/<name>/schema.json`.
