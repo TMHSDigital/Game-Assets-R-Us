@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Headless Blender CI on ubuntu-latest, Blender 5.2 LTS and 4.5 LTS.
 # On every push: brand blocklist scan, test suite (including determinism),
-# then build and validate the sampler kit for unity, godot, gltf_web and
-# stl_print. JSON reports are uploaded when anything fails.
+# then build, validate and package the sampler kit for every working profile
+# (unity, unreal, godot, gltf_web, stl_print) plus the experimental roblox
+# profile. JSON reports are uploaded when anything fails.
 # The Blender install steps are adapted from the author's
 # Blender-Developer-Tools blender-smoke.yml, plus SHA-256 verification and
 # caching.
@@ -96,10 +97,10 @@ jobs:
       - name: Test suite (unit, validator fixtures, external generator, determinism)
         run: xvfb-run -a pwsh -NoProfile -File scripts/test.ps1
 
-      - name: Build and validate the sampler (unity, godot, gltf_web, stl_print, roblox)
+      - name: Build and validate the sampler (working profiles and roblox)
         run: |
           xvfb-run -a pwsh -NoProfile -File scripts/build-kit.ps1 \
-            -Kit "$KIT" -Profiles unity,godot,gltf_web,stl_print,roblox -Seed 1337 -Strict
+            -Kit "$KIT" -Profiles working,roblox -Seed 1337 -Strict
 
       - name: Brand blocklist scan (build outputs)
         run: |

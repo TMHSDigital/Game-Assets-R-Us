@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Repository rules: SPDX headers in every source file, and ASCII-only text
-(so no emojis and no em dashes) in docs, READMEs, comments and data.
+"""Repository rules: SPDX headers in every source file, ASCII-only text
+(so no emojis and no em dashes) in docs, READMEs, comments and data, and
+every working profile built in CI.
 Checks git-tracked files; verbatim third-party license texts are exempt."""
 
 import os
+import re
 import subprocess
 import unittest
 
@@ -54,6 +56,30 @@ class RepoHygiene(unittest.TestCase):
                     if bad:
                         offenders.append(f"{rel}:{lineno}: {''.join(bad)!r}")
         self.assertEqual(offenders, [], "non-ASCII (emoji, em dash, ...) found")
+
+    def test_working_profiles_are_built_in_ci(self):
+        # scripts/_common.ps1 expands "working" from a fixed list; it must
+        # match the profiles whose profile.toml says status = "working", and
+        # CI must build that set, so no working profile goes unbuilt.
+        working = set()
+        profiles_dir = os.path.join(ROOT, "profiles")
+        for name in os.listdir(profiles_dir):
+            toml = os.path.join(profiles_dir, name, "profile.toml")
+            if os.path.isfile(toml):
+                with open(toml, encoding="utf-8") as fh:
+                    if re.search(r'^\s*status\s*=\s*"working"', fh.read(), re.M):
+                        working.add(name)
+        with open(os.path.join(ROOT, "scripts", "_common.ps1"), encoding="utf-8") as fh:
+            listed = re.search(r"\$script:WorkingProfiles\s*=\s*@\(([^)]*)\)", fh.read())
+        self.assertIsNotNone(listed)
+        self.assertEqual(set(re.findall(r'"([^"]+)"', listed.group(1))), working)
+        with open(os.path.join(ROOT, ".github", "workflows", "ci.yml"), encoding="utf-8") as fh:
+            build = re.search(r"build-kit\.ps1[^\n]*\n[^\n]*-Profiles\s+(\S+)", fh.read())
+        self.assertIsNotNone(build, "ci.yml has no build-kit.ps1 -Profiles step")
+        built = set(build.group(1).split(","))
+        if "working" in built:
+            built |= working
+        self.assertEqual(working - built, set(), "working profiles not built in CI")
 
 
 if __name__ == "__main__":
