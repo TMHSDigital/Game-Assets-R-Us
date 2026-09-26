@@ -28,6 +28,11 @@ def _setup_render(scene, width, height, textured=False):
     # Lossless maximum compression keeps previews under Fab's 3 MB per image.
     scene.render.image_settings.compression = 100
     scene.render.film_transparent = False
+    # No metadata stamps: the PNG Date and RenderTime text chunks would make
+    # identical renders differ byte for byte.
+    for prop in scene.render.bl_rna.properties:
+        if prop.identifier.startswith("use_stamp") and not prop.is_readonly:
+            setattr(scene.render, prop.identifier, False)
     shading = scene.display.shading
     shading.light = "STUDIO"
     # Baked textures when the kit has them, otherwise flat material colors.
