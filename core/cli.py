@@ -11,8 +11,10 @@
 --stages adds missing prerequisites: generate always runs, export implies
 validate, package implies validate and export.
 
-Exit codes: 0 ok, 1 validation or brand failure, 2 usage or contract error,
-3 profile is a stub (nothing exported).
+Exit codes: 0 ok, 1 validation, export, packaging or brand failure,
+2 usage or contract error, 3 profile is a stub (status = "stub", nothing
+exported), 4 profile unavailable on this machine (e.g. the Sollumz add-on
+is missing; nothing exported).
 """
 
 import argparse
@@ -26,6 +28,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 STAGES = ["generate", "validate", "export", "render", "package"]
+EXIT_UNAVAILABLE = 4  # 3 (stub) is core/exporters/stubs.EXIT_STUB
 # Stages a stage cannot run without. generate always runs (every other stage
 # works on the generated scene); nothing is exported or packaged unvalidated.
 PREREQUISITES = {"export": ["validate"], "package": ["validate", "export"]}
@@ -89,7 +92,7 @@ def cmd_run(args):
         return 2
 
     profile = resolved["profile"]
-    if profile["kind"] == "stub":
+    if profile["status"] == "stub":
         from core.exporters import stubs
         return stubs.run(resolved)
 
@@ -99,7 +102,7 @@ def cmd_run(args):
             fivem.ensure_sollumz(profile)
         except fivem.SollumzUnavailable as exc:
             print(f"UNAVAILABLE profile '{profile['name']}' ({profile['status']}): {exc}")
-            return 3
+            return EXIT_UNAVAILABLE
 
     seed = args.seed if args.seed is not None else contract["kit"]["default_seed"]
     out_dir = os.path.join(args.build_dir, contract["kit"]["id"], args.profile)
