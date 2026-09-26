@@ -1,6 +1,6 @@
 # Open TODOs
 
-## Roblox (profile: roblox, stub)
+## Roblox (profile: roblox, experimental)
 Verified on 2026-09-25 against create.roblox.com and recorded in
 `profiles/roblox/profile.toml` with source URLs:
 - 20,000 triangles per mesh (general specifications)
