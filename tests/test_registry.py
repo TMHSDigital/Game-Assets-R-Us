@@ -116,6 +116,24 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(sorted(p for p, _ in contract_mismatches(info, contract)),
                          ["/kit/version", "/legal/license"])
 
+    def test_broken_manifest_does_not_break_other_kits(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            os.makedirs(os.path.join(tmp, "broken"))
+            open(os.path.join(tmp, "broken", "generator.toml"), "w").write('id = "unterminated\n')
+            os.makedirs(os.path.join(tmp, "invalid"))
+            open(os.path.join(tmp, "invalid", "generator.toml"), "w").write('id = "other-gen"\n')
+            with self.assertRaisesRegex(RegistryError, "invalid manifest"):
+                discover(extra_paths=[tmp])
+            self.assertEqual(get("stone-dungeon-wall-sampler", extra_paths=[tmp]).source, "builtin")
+            with self.assertRaisesRegex(RegistryError, "invalid manifest"):
+                get("other-gen", extra_paths=[tmp])
+            shutil.copytree(os.path.join(EXTERNAL, "demo-external"), os.path.join(tmp, "copy"))
+            with self.assertRaisesRegex(RegistryError, "duplicate generator id"):
+                get("demo-external", extra_paths=[EXTERNAL, tmp])
+        finally:
+            shutil.rmtree(tmp)
+
     def test_unknown_id(self):
         with self.assertRaisesRegex(RegistryError, "no generator 'nope'"):
             get("nope")

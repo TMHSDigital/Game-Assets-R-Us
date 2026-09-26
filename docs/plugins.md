@@ -40,7 +40,9 @@ directory. Absolute paths, `..` and symlinks that lead outside are rejected.
 
 A path is either a generator directory or a directory of generator
 directories. The same id in two places is an error, and so is an
-`api_version` mismatch. Modules are loaded by file path under a private
+`api_version` mismatch. A build validates only the manifest of the
+generator it asks for, so a broken manifest elsewhere on the path is
+reported as a warning instead of breaking unrelated kits. Modules are loaded by file path under a private
 namespace; the core never imports a generator by name.
 
 ```powershell

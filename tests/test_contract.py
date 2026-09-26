@@ -158,6 +158,10 @@ class ContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "inside the kit directory"):
                 self._load_text(text.replace('license_file = "assets/LICENSE-CC0"', f'license_file = "{bad}"'))
 
+    def test_toml_syntax_error_is_contract_error(self):
+        with self.assertRaisesRegex(ContractError, "TOML syntax error"):
+            self._load_text('schema_version = 1\n[kit\n')
+
     def test_load_raises(self):
         data = _sampler_data()
         text = open(SAMPLER, encoding="utf-8").read().replace('license = "CC0-1.0"', 'license = "GPL"')

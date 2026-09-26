@@ -11,11 +11,10 @@ The result is the base contract with the merged table under the key
 
 import copy
 import os
-import tomllib
 from types import MappingProxyType
 
 from . import schema_lite
-from .load import NAME_TEMPLATES, ContractError, name_template_errors
+from .load import NAME_TEMPLATES, ContractError, name_template_errors, read_toml
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROFILES_DIR = os.path.join(REPO_ROOT, "profiles")
@@ -32,8 +31,7 @@ def load_profile(name):
     path = os.path.join(PROFILES_DIR, name, "profile.toml")
     if not os.path.isfile(path):
         raise ContractError(path, [("/", f"unknown profile '{name}', available: {available_profiles()}")])
-    with open(path, "rb") as fh:
-        return tomllib.load(fh)
+    return read_toml(path)
 
 
 def deep_merge(base, override):
