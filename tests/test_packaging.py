@@ -11,8 +11,10 @@ import unittest
 import bpy
 
 from core.contract import load_contract, resolve
+from core.contract.resolve import freeze, thaw
 from core.generators import get
 from core.packagers import PackagingError, marketplace, package
+from core.packagers.readme import kit_readme
 from core.packagers.zip_det import write_zip
 
 
@@ -100,6 +102,46 @@ class PackagePrerequisites(unittest.TestCase):
                                                     ["validate", "export"]))
         self.assertEqual(plan_stages(["generate", "export"]), (["generate", "validate", "export"], ["validate"]))
         self.assertEqual(plan_stages(["render"]), (["generate", "render"], []))
+
+
+class KitReadme(unittest.TestCase):
+    def _readme(self, profile="unity", **changes):
+        info = get("stone-dungeon-wall-sampler")
+        data = thaw(resolve(load_contract(info.contract_path), profile))
+        for path, value in changes.items():
+            block, key = path.split("__")
+            data[block][key] = value
+        manifest = {"seed": 1337, "blender": "4.4.0", "files": [], "roundtrip_passed": True}
+        return kit_readme(freeze(data), info, manifest, {"checks": {}, "pieces": {}}, None)
+
+    def test_license_text(self):
+        self.assertIn("public domain under CC0 1.0", self._readme())
+        text = self._readme(legal__license="commercial-eula")
+        self.assertIn("commercial EULA", text)
+        self.assertNotIn("public domain", text)
+
+    def test_pivot_follows_contract(self):
+        self.assertIn("pivot at the minimum corner", self._readme())
+        text = self._readme(style__pivot_rule="base_center")
+        self.assertIn("pivot at the center", text)
+        self.assertNotIn("minimum corner", text)
+
+    def test_provenance_follows_contract(self):
+        self.assertIn("no external textures", self._readme())
+        text = self._readme(legal__texture_provenance="https://example.org/textures")
+        self.assertNotIn("no external textures", text)
+        self.assertIn("https://example.org/textures", text)
+
+    def test_lods_per_piece(self):
+        self.assertIn("Every piece variant includes LOD0 to LOD2:", self._readme())
+        info = get("stone-dungeon-wall-sampler")
+        data = thaw(resolve(load_contract(info.contract_path), "unity"))
+        data["pieces"][1]["lod_tris"] = [1400]
+        text = kit_readme(freeze(data), info, {"seed": 1, "blender": "x", "files": [], "roundtrip_passed": True},
+                          {"checks": {}, "pieces": {}}, None)
+        self.assertIn("the LODs listed for its piece", text)
+        self.assertIn("| corner_outer | LOD0 only | 1400 |", text)
+        self.assertIn("LOD0 only (the engine generates LODs)", self._readme("roblox"))
 
 
 if __name__ == "__main__":
