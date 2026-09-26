@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Blender runtime libraries
         run: |
@@ -32,7 +32,9 @@ jobs:
           set -euo pipefail
           base="https://download.blender.org/release/Blender4.5/"
           file=$(curl -fsSL "$base" | grep -oE "blender-4\.5\.[0-9]+-linux-x64\.tar\.xz" | sort -V | uniq | tail -1)
+          if [ -z "$file" ]; then echo "::error::no linux-x64 build for Blender 4.5"; exit 1; fi
           version=$(echo "$file" | grep -oE "4\.5\.[0-9]+")
+          echo "Blender: \`$version\` ($file)" >> "$GITHUB_STEP_SUMMARY"
           curl -fSL --retry 3 -o "$RUNNER_TEMP/$file" "$base$file"
           curl -fSL --retry 3 -o "$RUNNER_TEMP/blender.sha256" "${base}blender-${version}.sha256"
           expected=$(grep " $file\$" "$RUNNER_TEMP/blender.sha256" | cut -d' ' -f1)
@@ -82,7 +84,7 @@ jobs:
 
       - name: Upload probe results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sollumz-probe
           path: |

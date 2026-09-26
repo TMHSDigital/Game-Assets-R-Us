@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Headless Blender CI on ubuntu-latest, Blender 5.2 LTS and 4.5 LTS.
-# On every push: brand blocklist scan, test suite (including determinism),
-# then build, validate and package the sampler kit for every working profile
-# (unity, unreal, godot, gltf_web, stl_print) plus the experimental roblox
-# profile. JSON reports are uploaded when anything fails.
+# Headless Blender CI on ubuntu-latest, Blender 5.2 LTS and 4.5 LTS (pinned
+# patch releases, see the matrix). On pushes to main and on pull requests:
+# brand blocklist scan, test suite (including determinism), then build,
+# validate and package the sampler kit for every working profile (unity,
+# unreal, godot, gltf_web, stl_print) plus the experimental roblox profile.
+# JSON reports are uploaded when anything fails.
 # The Blender install steps are adapted from the author's
 # Blender-Developer-Tools blender-smoke.yml, plus SHA-256 verification and
 # caching.
@@ -11,6 +12,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -29,11 +31,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        series: ["5.2", "4.5"]
+        # Pinned patch releases, so runs are reproducible (exported bytes can
+        # differ between Blender versions). To bump: pick the new
+        # linux-x64 tarball on download.blender.org/release/Blender<series>/
+        # and copy its line from blender-<version>.sha256.
+        include:
+          - series: "5.2"
+            version: "5.2.2"
+            sha256: 84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168
+          - series: "4.5"
+            version: "4.5.14"
+            sha256: 9ba871ff2ecd36526b77432745980b7e6664ecd0c7ca11c48849073dcfe06da3
     env:
       KIT: stone-dungeon-wall-sampler
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Blender runtime libraries
         run: |
@@ -43,50 +55,38 @@ jobs:
             xvfb libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3 libxi6 \
             libxkbcommon0 libsm6 libice6
 
-      - name: Resolve latest Blender ${{ matrix.series }} release
-        id: resolve
-        run: |
-          set -euo pipefail
-          series="${{ matrix.series }}"
-          base="https://download.blender.org/release/Blender${series}/"
-          file=$(curl -fsSL "$base" | grep -oE "blender-${series}\.[0-9]+-linux-x64\.tar\.xz" | sort -V | uniq | tail -1)
-          if [ -z "$file" ]; then echo "::error::no linux-x64 build for Blender ${series}"; exit 1; fi
-          version=$(echo "$file" | grep -oE "${series}\.[0-9]+")
-          echo "file=$file" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "base=$base" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Blender
+      - name: Cache Blender ${{ matrix.version }}
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/blender-${{ steps.resolve.outputs.version }}
-          key: blender-${{ steps.resolve.outputs.version }}-linux-x64
+          path: ~/blender-${{ matrix.version }}
+          key: blender-${{ matrix.version }}-linux-x64-${{ matrix.sha256 }}
 
-      - name: Download and verify Blender ${{ steps.resolve.outputs.version }}
+      - name: Download and verify Blender ${{ matrix.version }}
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          base="${{ steps.resolve.outputs.base }}"
-          file="${{ steps.resolve.outputs.file }}"
-          version="${{ steps.resolve.outputs.version }}"
-          curl -fSL --retry 3 -o "$RUNNER_TEMP/$file" "$base$file"
-          curl -fSL --retry 3 -o "$RUNNER_TEMP/blender.sha256" "${base}blender-${version}.sha256"
-          expected=$(grep " $file\$" "$RUNNER_TEMP/blender.sha256" | cut -d' ' -f1)
+          version="${{ matrix.version }}"
+          file="blender-${version}-linux-x64.tar.xz"
+          curl -fSL --retry 3 -o "$RUNNER_TEMP/$file" \
+            "https://download.blender.org/release/Blender${{ matrix.series }}/$file"
+          expected="${{ matrix.sha256 }}"
           actual=$(sha256sum "$RUNNER_TEMP/$file" | cut -d' ' -f1)
           echo "expected $expected"; echo "actual   $actual"
-          [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "::error::SHA-256 mismatch"; exit 1; }
+          [ "$expected" = "$actual" ] || { echo "::error::SHA-256 mismatch"; exit 1; }
           mkdir -p ~/blender-$version
           tar -xf "$RUNNER_TEMP/$file" -C ~/blender-$version --strip-components=1
 
       - name: Select Blender
         run: |
           set -euo pipefail
-          bl=~/blender-${{ steps.resolve.outputs.version }}/blender
-          "$bl" --version | head -1 | grep -q "Blender ${{ matrix.series }}\." \
-            || { echo "::error::version does not match series ${{ matrix.series }}"; exit 1; }
+          bl=~/blender-${{ matrix.version }}/blender
+          banner=$("$bl" --version | head -1)
+          echo "$banner"
+          echo "$banner" | grep -qE "^Blender ${{ matrix.version }}( |$)" \
+            || { echo "::error::expected Blender ${{ matrix.version }}, got: $banner"; exit 1; }
           echo "GARU_BLENDER=$bl" >> "$GITHUB_ENV"
-          "$bl" --version | head -1
+          echo "Blender: \`$banner\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Brand blocklist scan (repository)
         run: |
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload JSON reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: reports-blender-${{ matrix.series }}
           path: |
@@ -121,7 +121,7 @@ jobs:
 
       - name: Upload packages
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-blender-${{ matrix.series }}
           path: dist/
