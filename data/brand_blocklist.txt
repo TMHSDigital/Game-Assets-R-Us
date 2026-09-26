@@ -1,13 +1,20 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Brand blocklist for LEGAL.BRAND. One mark per line, case-insensitive.
-# Matching is on whole tokens: names are split on non-alphanumerics and
-# camelCase, and multi-word marks match as consecutive tokens or joined
-# ("burger king" also matches "BurgerKing" and "burger_king").
+# Matching is on whole tokens: names are folded to plain ASCII (full-width
+# forms, accents and Cyrillic/Greek lookalikes), then split on
+# non-alphanumerics, camelCase, ALLCAPS runs ("BMWLogo") and letter/digit
+# boundaries ("SM_Ford01"). Multi-word marks match as consecutive tokens or
+# joined ("burger king" also matches "BurgerKing" and "burger_king").
 #
 # Deliberately NOT listed because they are ordinary words that show up in
 # asset names: subway, puma, jaguar, mustang, beetle, dove, apple, shell,
-# sonic, dominos, supreme, coach, guess, mini, seat, smart, genesis, polo.
-# Exemptions for a specific kit go in data/brand_allowlist.txt.
+# sonic, dominos, supreme, coach, guess, mini, seat, smart, genesis, polo,
+# dodge, fiat, citadel. Those brands are listed by model or full name
+# instead ("dodge viper", "fiat 500").
+# Not listed: openlock / printable scenery. This repo's docs discuss the
+# OpenLOCK license by name (docs/TODO.md, docs/print.md), so the repository
+# brand scan would flag them; review OpenLOCK naming by hand.
+# Exemptions (phrases such as "tesla coil") go in data/brand_allowlist.txt.
 
 # Automotive
 acura
@@ -23,9 +30,15 @@ chevrolet
 chevy
 chrysler
 citroen
-dodge
+dodge challenger
+dodge charger
+dodge durango
+dodge viper
 ferrari
-fiat
+fiat 500
+fiat chrysler
+fiat panda
+fiat punto
 ford
 gmc
 honda
@@ -122,3 +135,35 @@ tim hortons
 wendys
 whataburger
 white castle
+
+# Games, toys and tabletop (the ones that matter most for dungeon tiles)
+dungeons and dragons
+dungeons dragons
+dwarven forge
+games workshop
+warhammer
+age of sigmar
+necromunda
+blood bowl
+citadel miniatures
+wizards of the coast
+forgotten realms
+mind flayer
+magic the gathering
+heroquest
+hasbro
+lego
+duplo
+playmobil
+mattel
+nintendo
+pokemon
+zelda
+disney
+pixar
+lucasfilm
+star wars
+minecraft
+mojang
+fortnite
+warcraft

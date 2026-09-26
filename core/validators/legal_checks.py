@@ -12,6 +12,7 @@ LEGAL.AI_CONTENT  generators are deterministic code: ai_content = false
 
 import os
 import re
+import unicodedata
 
 import bpy
 
@@ -34,39 +35,101 @@ def _read_list(path):
     return out
 
 
-def tokens(text):
-    text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(text))
-    return [t for t in re.split(r"[^A-Za-z0-9]+", text.lower()) if t]
+# Latin lookalikes from Cyrillic and Greek that NFKC leaves alone, so "Nike"
+# spelled with a Cyrillic i still reads as "nike". Code points, not literal
+# characters, because source files are ASCII only.
+_CYRILLIC = {
+    0x0430: "a", 0x0435: "e", 0x043E: "o", 0x0440: "p", 0x0441: "c", 0x0443: "y", 0x0445: "x",
+    0x0456: "i", 0x0458: "j", 0x0455: "s", 0x0501: "d", 0x04CF: "l", 0x043A: "k", 0x043C: "m",
+    0x043D: "h", 0x0442: "t", 0x0432: "b",
+    0x0410: "A", 0x0412: "B", 0x0415: "E", 0x041A: "K", 0x041C: "M", 0x041D: "H", 0x041E: "O",
+    0x0420: "P", 0x0421: "C", 0x0422: "T", 0x0425: "X", 0x0406: "I", 0x0408: "J", 0x0405: "S",
+}
+_GREEK = {
+    0x03B1: "a", 0x03BF: "o", 0x03BD: "v", 0x03C1: "p", 0x03C4: "t", 0x03B9: "i", 0x03BA: "k",
+    0x0391: "A", 0x0392: "B", 0x0395: "E", 0x0396: "Z", 0x0397: "H", 0x0399: "I", 0x039A: "K",
+    0x039C: "M", 0x039D: "N", 0x039F: "O", 0x03A1: "P", 0x03A4: "T", 0x03A5: "Y", 0x03A7: "X",
+}
+CONFUSABLES = {**_CYRILLIC, **_GREEK}
+
+
+def normalize(text):
+    """Fold full-width forms (NFKC), Cyrillic and Greek lookalike letters and
+    accents to plain letters, so full-width "nike", "Nike" with a Cyrillic i
+    and "Citroen" with a diaeresis all read as their ASCII spelling."""
+    text = unicodedata.normalize("NFKC", str(text)).translate(CONFUSABLES)
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+
+
+def _split_word(word):
+    word = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", word)   # BMWLogo -> BMW Logo
+    word = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", word)      # McDonalds -> Mc Donalds
+    word = re.sub(r"([A-Za-z])([0-9])", r"\1 \2", word)      # Ford01 -> Ford 01
+    word = re.sub(r"([0-9])([A-Za-z])", r"\1 \2", word)
+    return word.lower().split()
 
 
 def camel_parts(text):
     """Sub-tokens of each separate word: "McDonaldsSign lamp" gives
     [["mc", "donalds", "sign"], ["lamp"]]. Joining is only allowed inside one
     word, so "for d" in code never reads as "ford"."""
-    return [tokens(word) for word in re.split(r"[^A-Za-z0-9]+", str(text)) if word]
+    return [_split_word(word) for word in re.split(r"[^A-Za-z0-9]+", normalize(text)) if word]
+
+
+def tokens(text):
+    return [t for parts in camel_parts(text) for t in parts]
+
+
+def _find(seq, sub):
+    n = len(sub)
+    return [i for i in range(len(seq) - n + 1) if seq[i:i + n] == sub]
 
 
 class BrandScanner:
+    """Allowlist entries are phrases: a mark is not flagged where it only
+    occurs inside an allowlisted phrase ("tesla coil"), so the same text
+    can still be flagged for the mark elsewhere ("tesla_coil_tesla_logo")."""
+
     def __init__(self, blocklist=BLOCKLIST, allowlist=ALLOWLIST):
         self.marks = []
         for entry in _read_list(blocklist):
             parts = tokens(entry)
             if parts:
                 self.marks.append((entry, parts, "".join(parts)))
-        self.allowed = set(_read_list(allowlist))
+        self.allowed = [p for p in (tokens(entry) for entry in _read_list(allowlist)) if p]
+        self.longest = max((len(joined) for _e, _p, joined in self.marks), default=0)
 
     def hits(self, text):
-        if str(text).strip().lower() in self.allowed:
-            return []
-        toks = tokens(text)
+        words = camel_parts(text)
+        toks = [t for parts in words for t in parts]
+        free = [True] * len(toks)
+        for phrase in self.allowed:
+            for i in _find(toks, phrase):
+                free[i:i + len(phrase)] = [False] * len(phrase)
+
+        def clear(i, j):
+            return all(free[i:j])
+
+        # Runs of two or more sub-tokens inside one word, joined: "Coca" +
+        # "Cola" in "CocaColaCrate" reads as "cocacola". Runs longer than the
+        # longest mark cannot match, which keeps long hashes cheap.
+        joins = set()
+        start = 0
+        for parts in words:
+            end = start + len(parts)
+            for i in range(start, end):
+                joined = toks[i]
+                for j in range(i + 1, end):
+                    joined += toks[j]
+                    if len(joined) > self.longest or not (free[i] and free[j]):
+                        break
+                    joins.add(joined)
+            start = end
+
         found = []
         for entry, parts, joined in self.marks:
-            n = len(parts)
-            if joined in toks or any(toks[i:i + n] == parts for i in range(len(toks) - n + 1)):
-                found.append(entry)
-            elif any("".join(parts_[i:j]) == joined
-                     for parts_ in camel_parts(text)
-                     for i in range(len(parts_)) for j in range(i + 2, len(parts_) + 1)):
+            if joined in joins or any(t == joined and ok_ for t, ok_ in zip(toks, free)) \
+                    or any(clear(i, i + len(parts)) for i in _find(toks, parts)):
                 found.append(entry)
         return found
 

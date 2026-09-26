@@ -247,6 +247,32 @@ class LegalCheckFixtures(unittest.TestCase):
         self.assertEqual(scanner.hits("CocaColaCrate"), ["coca cola", "cocacola"])
         self.assertEqual(scanner.hits("SM_SDW_wall_straight_clean"), [])
 
+    def test_brand_tokenizer_digits_caps_and_lookalikes(self):
+        scanner = legal_checks.BrandScanner()
+        self.assertEqual(scanner.hits("SM_Ford01"), ["ford"])
+        self.assertEqual(scanner.hits("Porsche911"), ["porsche"])
+        self.assertEqual(scanner.hits("BMWLogo"), ["bmw"])
+        self.assertEqual(scanner.hits("NIKEShoe"), ["nike"])
+        self.assertEqual(scanner.hits("KFCSign"), ["kfc"])
+        self.assertEqual(scanner.hits("Citro\u00ebn"), ["citroen"])
+        self.assertEqual(scanner.hits("N\u0456ke"), ["nike"])  # Cyrillic i
+        self.assertEqual(scanner.hits("\uff4e\uff49\uff4b\uff45"), ["nike"])  # full-width
+        self.assertEqual(scanner.hits("Fiat500_badge"), ["fiat 500"])
+        self.assertEqual(scanner.hits("WarhammerBanner"), ["warhammer"])
+        self.assertEqual(scanner.hits("lego_brick"), ["lego"])
+        self.assertEqual(scanner.hits("SM_DwarvenForge_tile"), ["dwarven forge"])
+        # Still no false positives from the new splits.
+        self.assertEqual(scanner.hits("SM_SDW_wall_straight_clean_LOD1"), [])
+        self.assertEqual(scanner.hits("fordable_bridge_02"), [])
+
+    def test_brand_allowlist_is_contextual(self):
+        scanner = legal_checks.BrandScanner()
+        self.assertEqual(scanner.hits("SM_Kit_Tesla_Coil"), [])
+        self.assertEqual(scanner.hits("TeslaCoilTop"), [])
+        self.assertEqual(scanner.hits("dodge_roll"), [])
+        self.assertEqual(scanner.hits("tesla_coil_tesla_logo"), ["tesla"])
+        self.assertEqual(scanner.hits("TeslaLogo"), ["tesla"])
+
     def test_brand_in_material_fails(self):
         import bpy
         bpy.data.materials.new("GucciGold")
