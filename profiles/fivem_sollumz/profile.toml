@@ -6,7 +6,7 @@
 # so the manifest version is filled in) into a Blender user folder plus the
 # szio wheel Sollumz pins; point BLENDER_USER_RESOURCES at that folder and
 # GARU_SZIO_SITE at the szio install directory (docs/TODO.md has the steps).
-# Without Sollumz the profile exits 3 with instructions.
+# Without Sollumz the profile exits 4 (UNAVAILABLE) with instructions.
 #
 # Output is CodeWalker XML (.ydr.xml) in gen8/ and gen9/, one drawable per
 # piece variant with LOD0 to LOD2 as High/Medium/Low, embedded collision and

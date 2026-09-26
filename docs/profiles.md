@@ -39,7 +39,12 @@ may write different bytes (the glTF exporter embeds its version, and
 decimation results can shift), which is why LOD checks use budgets, not
 exact counts.
 
-## Stubs
+## Experimental profiles and stubs
+
+A profile with `status = "stub"` validates its settings and exits 3 without
+exporting (none today). A profile whose exporter is missing on this machine
+(`fivem_sollumz` without Sollumz) exits 4, UNAVAILABLE, so it can never pass
+for a successful build.
 
 `roblox` is EXPERIMENTAL: it exports, but has been verified only by
 re-import in Blender, not in Roblox Studio. Roblox allows one material per
@@ -53,7 +58,7 @@ recorded); verified limits are enforced at export, unverified ones never.
 
 `fivem_sollumz` is EXPERIMENTAL, Blender 4.5 only, and needs the pinned
 Sollumz commit and szio wheel installed (never vendored); without them it
-exits 3 with instructions. `core/fivem.py` turns each piece variant into a
+exits 4 with instructions. `core/fivem.py` turns each piece variant into a
 Sollumz drawable named `<archetype_prefix><piece>_<variant>`: LOD0 to LOD2
 as the High, Medium and Low levels with the profile's LOD distances,
 `normal.sps` materials naming the baked textures (lowercase, as the game
