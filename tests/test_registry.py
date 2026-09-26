@@ -105,6 +105,17 @@ class RegistryTests(unittest.TestCase):
         finally:
             shutil.rmtree(base)
 
+    def test_contract_must_match_manifest(self):
+        from core.contract import load_contract
+        from core.generators.registry import contract_mismatches
+        info = get("stone-dungeon-wall-sampler")
+        contract = load_contract(info.contract_path)
+        self.assertEqual(contract_mismatches(info, contract), [])
+        contract["legal"]["license"] = "commercial-eula"
+        contract["kit"]["version"] = "9.9.9"
+        self.assertEqual(sorted(p for p, _ in contract_mismatches(info, contract)),
+                         ["/kit/version", "/legal/license"])
+
     def test_unknown_id(self):
         with self.assertRaisesRegex(RegistryError, "no generator 'nope'"):
             get("nope")

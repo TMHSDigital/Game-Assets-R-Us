@@ -119,6 +119,17 @@ def get(generator_id, extra_paths=()):
     return found[generator_id]
 
 
+def contract_mismatches(info, contract):
+    """(json_pointer, message) pairs where the kit contract disagrees with
+    its generator manifest: id, version and license must all match."""
+    kit, legal = contract["kit"], contract["legal"]
+    pairs = [("/kit/generator", kit["generator"], info.id, "id"),
+             ("/kit/version", kit["version"], info.version, "version"),
+             ("/legal/license", legal["license"], info.license, "license")]
+    return [(pointer, f"is '{value}', but the generator manifest {what} is '{expected}'")
+            for pointer, value, expected, what in pairs if value != expected]
+
+
 def load_module(info):
     name = "garu_generators." + info.id.replace("-", "_")
     spec = importlib.util.spec_from_file_location(name, info.module_path)
