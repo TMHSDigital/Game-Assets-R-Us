@@ -44,6 +44,22 @@ def bowtie(name):
     return obj
 
 
+def front_profile(name, outline, depth=20):
+    """A solid from an XZ outline (mm) extruded 0..depth along Y."""
+    bm = bmesh.new()
+    prims.add_prism(bm, outline, 0, depth, axes=("x", "z", "y"))
+    prims.recalc_normals(bm)
+    obj = prims.to_object(bm, name)
+    bm.free()
+    return obj
+
+
+# A 10 mm flat ceiling held by a post on each side, and the same ceiling as a
+# ledge held on one side only. Both are well under max_bridge_mm = 14.
+GATE = [(0, 0), (5, 0), (5, 10), (15, 10), (15, 0), (20, 0), (20, 15), (0, 15)]
+LEDGE = [(0, 0), (5, 0), (5, 10), (15, 10), (15, 15), (0, 15)]
+
+
 def status(checks, check_id):
     found = [c.status for c in checks if c.id == check_id]
     assert found, f"check {check_id} not reported; got {[c.id for c in checks]}"
@@ -185,6 +201,19 @@ class StlCheckFixtures(unittest.TestCase):
                                 "STL.OVERHANG"), "fail")
         self.assertEqual(status(stl_checks.check_overhang(fx.box("block", (0, 0, 0), (20, 20, 20)),
                                                           self.c["print"]), "STL.OVERHANG"), "pass")
+
+    def test_bridge_needs_support_on_two_sides(self):
+        pr = self.c["print"]
+        self.assertLessEqual(10, pr["max_bridge_mm"])
+        gate = stl_checks.check_overhang(front_profile("gate", GATE), pr)[0]
+        self.assertEqual(gate.status, "pass")
+        self.assertEqual(gate.detail["bridge_spans_mm"], [10.0])
+        ledge = stl_checks.check_overhang(front_profile("ledge", LEDGE), pr)[0]
+        self.assertEqual(ledge.status, "fail")
+        self.assertEqual(ledge.detail["bridged_mm2"], 0.0)
+        self.assertAlmostEqual(ledge.detail["unsupported_mm2"], 200.0, places=3)
+        self.assertEqual(stl_checks.check_overhang(front_profile("ledge2", LEDGE), {**pr, "presupport_required": True})
+                         [0].status, "pass")
 
     def test_bbox_too_big_fails(self):
         big = fx.box("big", (0, 0, 0), (300, 20, 20))

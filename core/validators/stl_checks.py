@@ -5,7 +5,8 @@ STL.WATERTIGHT    no boundary edges, consistent winding, positive signed volume
 STL.NONMANIFOLD   non-manifold edge and vertex counts are zero
 STL.SELFX         no self-intersecting faces
 STL.WALL.MIN      minimum wall thickness by BVH ray sampling
-STL.OVERHANG      overhang angle histogram against max_overhang_deg
+STL.OVERHANG      overhang angle histogram against max_overhang_deg; flat
+                  bridges must be held on two opposite sides
 STL.BBOX          fits the build plate and sits on it (min z = 0)
 STL.SOCKET        socket pockets are open, surrounded by material, and the
                   clip is exactly the pocket shrunk by the tolerance
@@ -72,6 +73,15 @@ def check_min_wall(obj, min_wall):
                     thin_samples=len(thin), thin_examples=thin[:10])]
 
 
+def _key(p):
+    return tuple(round(x, 5) for x in p)
+
+
+def _edges(pts):
+    keys = [_key(p) for p in pts]
+    return [tuple(sorted((keys[a], keys[b]))) for a, b in ((0, 1), (1, 2), (2, 0))]
+
+
 def _regions(tris):
     """Group triangles that share an edge (by rounded vertex positions)."""
     parent = list(range(len(tris)))
@@ -84,9 +94,7 @@ def _regions(tris):
 
     owner = {}
     for i, (_c, _n, _a, pts) in enumerate(tris):
-        keys = [tuple(round(x, 5) for x in p) for p in pts]
-        for a, b in ((0, 1), (1, 2), (2, 0)):
-            edge = tuple(sorted((keys[a], keys[b])))
+        for edge in _edges(pts):
             if edge in owner:
                 parent[find(i)] = find(owner[edge])
             else:
@@ -97,14 +105,59 @@ def _regions(tris):
     return list(groups.values())
 
 
+def _supported_edges(region, edge_tris):
+    """Boundary edges of a region (lists of (tri id, sample)) that sit on
+    material below: the neighbouring face across the edge goes down from
+    it, like a door jamb under a lintel. The free edge of a ledge borders a
+    face that goes up instead."""
+    ids = {i for i, _t in region}
+    count = {}
+    for _i, t in region:
+        for edge in _edges(t[3]):
+            count[edge] = count.get(edge, 0) + 1
+    out = []
+    for edge, n in count.items():
+        if n != 1:
+            continue
+        z = min(edge[0][2], edge[1][2])
+        for j, other in edge_tris.get(edge, ()):
+            if j not in ids and any(_key(p) not in edge and p.z < z - PLATE_EPS for p in other[3]):
+                out.append(edge)
+                break
+    return out
+
+
+def _bridge_span(pts, supported):
+    """Shortest distance a region spans between supports on two opposite
+    sides (along x or y), or None if it is not held on two opposite sides."""
+    def held_at(axis, v):
+        return any(abs(a[axis] - v) <= PLATE_EPS and abs(b[axis] - v) <= PLATE_EPS for a, b in supported)
+
+    spans = []
+    for axis in (0, 1):
+        lo, hi = min(p[axis] for p in pts), max(p[axis] for p in pts)
+        if held_at(axis, lo) and held_at(axis, hi):
+            spans.append(hi - lo)
+    return min(spans) if spans else None
+
+
 def check_overhang(obj, pr):
+    """Downward faces steeper than max_overhang_deg are unsupported unless
+    they form a flat bridge: a near-horizontal region held by material on two
+    opposite sides no further apart than max_bridge_mm. A one-sided ledge
+    (cantilever) is never a bridge. Unsupported area up to
+    max_overhang_area_mm2 is tolerated. With presupport_required the check
+    only reports, since the slicer adds supports anyway."""
     limit = pr["max_overhang_deg"]
     bridge = pr.get("max_bridge_mm", 0.0)
     area_cap = pr.get("max_overhang_area_mm2", 0.0)
     hist = {}
     steep = []
-    for sample in metrics.triangle_samples(obj):
+    edge_tris = {}
+    for i, sample in enumerate(metrics.triangle_samples(obj)):
         centroid, n, area, pts = sample
+        for edge in _edges(pts):
+            edge_tris.setdefault(edge, []).append((i, sample))
         if n.z >= 0:
             continue
         if all(p.z < PLATE_EPS for p in pts):
@@ -113,24 +166,26 @@ def check_overhang(obj, pr):
         b = min(85, int(ang // 5) * 5)
         hist[f"{b:02d}-{b + 5:02d}"] = hist.get(f"{b:02d}-{b + 5:02d}", 0.0) + area
         if ang > limit + OVERHANG_TOL_DEG:
-            steep.append(sample)
+            steep.append((i, sample))
     bridged = unsupported = 0.0
     bridges = []
-    for group in _regions(steep):
-        tris = [steep[i] for i in group]
+    for group in _regions([t for _i, t in steep]):
+        region = [steep[k] for k in group]
+        tris = [t for _i, t in region]
         area = sum(t[2] for t in tris)
-        pts = [p for t in tris for p in t[3]]
-        span = min(max(p.x for p in pts) - min(p.x for p in pts), max(p.y for p in pts) - min(p.y for p in pts))
         flat = all(metrics.angle_below_horizontal(t[1]) >= BRIDGE_MIN_DEG for t in tris)
-        if flat and span <= bridge:
+        span = _bridge_span([p for t in tris for p in t[3]], _supported_edges(region, edge_tris)) if flat else None
+        if span is not None and span <= bridge:
             bridged += area
             bridges.append(round(span, 3))
         else:
             unsupported += area
-    passed = unsupported <= area_cap + 1e-9 or pr.get("presupport_required", False)
+    presupport = pr.get("presupport_required", False)
+    passed = unsupported <= area_cap + 1e-9 or presupport
     return [verdict("STL.OVERHANG", passed,
                     f"downward faces steeper than {limit} deg only as bridges <= {bridge} mm "
-                    f"or <= {area_cap} mm2 in total",
+                    f"held on two opposite sides, or <= {area_cap} mm2 in total"
+                    + (" (report only: presupport_required)" if presupport else ""),
                     histogram_mm2=dict(sorted(hist.items())), steep_area_mm2=bridged + unsupported,
                     bridged_mm2=bridged, bridge_spans_mm=sorted(bridges), unsupported_mm2=unsupported)]
 
