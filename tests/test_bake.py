@@ -3,11 +3,14 @@
 
 import array
 import hashlib
+import math
 import os
 import shutil
 import statistics
 import tempfile
 import unittest
+
+import bpy
 
 from core import bake, materials, pipeline
 from core.contract import load_contract, resolve
@@ -75,6 +78,28 @@ class BakeTests(unittest.TestCase):
         finally:
             shutil.rmtree(again, ignore_errors=True)
         self.assertEqual(first, second)
+
+
+class NormalFromHeight(unittest.TestCase):
+    def test_strength_independent_of_size(self):
+        # Four sine periods across the tile: the slope per UV unit is fixed, so
+        # the normal map must not change with the texture size.
+        reds = {}
+        for s in (64, 256):
+            height = bpy.data.images.new(f"h{s}", s, s, float_buffer=True)
+            px = array.array("f", [0.0]) * (s * s * 4)
+            for y in range(s):
+                for x in range(s):
+                    px[(y * s + x) * 4] = 4.0 * math.sin(8 * math.pi * x / s)
+            height.pixels.foreach_set(px)
+            target = bpy.data.images.new(f"n{s}", s, s)
+            bake.normal_from_height(height, target)
+            out = _pixels(target)
+            reds[s] = max(abs(v - 0.5) for v in out[0::4])
+            bpy.data.images.remove(height)
+            bpy.data.images.remove(target)
+        self.assertGreater(reds[64], 0.05)
+        self.assertAlmostEqual(reds[64], reds[256], delta=0.01)
 
 
 if __name__ == "__main__":
