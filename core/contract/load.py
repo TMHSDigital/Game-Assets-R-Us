@@ -89,6 +89,11 @@ def semantic_errors(data):
         if any(b >= a for a, b in zip(lods, lods[1:])):
             errors.append((f"/pieces/{i}/lod_tris", f"LOD budgets must strictly decrease, got {lods}"))
     profiles = data.get("exports", {}).get("profiles", [])
+    for name in sorted(set(data.get("profiles", {})) - set(profiles)):
+        errors.append((f"/profiles/{name}", f"overrides profile '{name}', which exports.profiles does not list"))
+    td = data.get("texel_density", {})
+    if td.get("min_px_per_cell", 0) > td.get("max_px_per_cell", float("inf")):
+        errors.append(("/texel_density", "min_px_per_cell must not exceed max_px_per_cell"))
     if "stl_print" in profiles and "print" not in data:
         errors.append(("/", "exports include stl_print but the [print] block is missing"))
     tex = data.get("textures")
@@ -98,6 +103,8 @@ def semantic_errors(data):
     legal = data.get("legal", {})
     if legal.get("license") == "commercial-eula" and not legal.get("eula_file"):
         errors.append(("/legal", "license commercial-eula requires legal.eula_file"))
+    if legal.get("license") == "CC0-1.0" and not legal.get("license_file"):
+        errors.append(("/legal", "license CC0-1.0 requires legal.license_file"))
     if legal.get("ai_content") is True:
         errors.append(("/legal/ai_content", "generators are deterministic code; ai_content must be false"))
     return errors

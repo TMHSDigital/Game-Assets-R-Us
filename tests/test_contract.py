@@ -53,6 +53,15 @@ class SchemaLiteTests(unittest.TestCase):
         self.assertTrue(schema_lite.validate({"kind": "b", "u": "http://x"}, schema))
         self.assertTrue(schema_lite.validate({"kind": "a", "n": 0}, schema))
 
+    def test_bool_is_not_int_for_const_enum_unique(self):
+        self.assertTrue(schema_lite.validate(1, {"const": True}))
+        self.assertTrue(schema_lite.validate(True, {"const": 1}))
+        self.assertTrue(schema_lite.validate(0, {"enum": [False, "x"]}))
+        self.assertEqual(schema_lite.validate(True, {"const": True}), [])
+        self.assertEqual(schema_lite.validate(2.0, {"const": 2}), [])
+        self.assertEqual(schema_lite.validate([1, True], {"uniqueItems": True}), [])
+        self.assertTrue(schema_lite.validate([[1], [1]], {"uniqueItems": True}))
+
     def test_unsupported_keyword_rejected(self):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
             fh.write('{"type": "string", "format": "email"}')
@@ -93,6 +102,22 @@ class ContractTests(unittest.TestCase):
     def test_commercial_eula_needs_file(self):
         errs = self._errors(lambda d: d["legal"].__setitem__("license", "commercial-eula"))
         self.assertTrue(any("eula_file" in m for _, m in errs), errs)
+
+    def test_brand_check_rejects_integer(self):
+        errs = self._errors(lambda d: d["legal"].__setitem__("brand_check", 1))
+        self.assertTrue(any("/legal/brand_check" in p for p, _ in errs), errs)
+
+    def test_cc0_needs_license_file(self):
+        errs = self._errors(lambda d: d["legal"].pop("license_file"))
+        self.assertTrue(any("license_file" in m for _, m in errs), errs)
+
+    def test_override_for_unlisted_profile_rejected(self):
+        errs = self._errors(lambda d: d.__setitem__("profiles", {"untiy": {"cell_size": 1.0}}))
+        self.assertTrue(any(p == "/profiles/untiy" for p, _ in errs), errs)
+
+    def test_texel_range_ordered(self):
+        errs = self._errors(lambda d: d["texel_density"].update(min_px_per_cell=2048, max_px_per_cell=256))
+        self.assertTrue(any("min_px_per_cell" in m for _, m in errs), errs)
 
     def test_clip_system_fields_enforced(self):
         errs = self._errors(lambda d: d["print"]["clip_system"].pop("tolerance_mm"))
