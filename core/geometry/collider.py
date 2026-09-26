@@ -12,20 +12,50 @@ import bpy
 from mathutils import Vector
 
 
-def convex_hull(points, name, collection=None):
+PLANE_DOT = 1.0 - 1e-4  # normals closer than ~0.8 degrees share a plane
+AREA_EPS = 1e-9
+
+
+def _hull(points):
     bm = bmesh.new()
+    verts = [bm.verts.new(p) for p in points]
+    result = bmesh.ops.convex_hull(bm, input=verts)
+    drop = {g for g in list(result.get("geom_interior") or []) + list(result.get("geom_unused") or [])
+            if isinstance(g, bmesh.types.BMVert)}
+    if drop:
+        bmesh.ops.delete(bm, geom=sorted(drop, key=lambda v: v.index), context="VERTS")
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-7)
+    bm.normal_update()
+    return bm
+
+
+def _corners(bm):
+    """Hull vertices where three or more distinct planes meet. Points on a
+    hull face or along a hull edge only add sliver triangles whose normals
+    are noise, and no orientation pass can wind those consistently."""
+    out = []
+    for v in bm.verts:
+        normals = []
+        for f in v.link_faces:
+            if f.calc_area() > AREA_EPS and all(f.normal.dot(n) < PLANE_DOT for n in normals):
+                normals.append(f.normal.copy())
+        if len(normals) >= 3:
+            out.append(v.co.copy())
+    return out
+
+
+def convex_hull(points, name, collection=None):
+    bm = _hull(points)
     try:
-        verts = [bm.verts.new(p) for p in points]
-        result = bmesh.ops.convex_hull(bm, input=verts)
-        drop = {g for g in list(result.get("geom_interior") or []) + list(result.get("geom_unused") or [])
-                if isinstance(g, bmesh.types.BMVert)}
-        if drop:
-            bmesh.ops.delete(bm, geom=sorted(drop, key=lambda v: v.index), context="VERTS")
-        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-7)
+        corners = _corners(bm)
+        if len(corners) >= 4 and len(corners) < len(bm.verts):
+            bm.free()
+            bm = _hull(corners)
+        # Coplanar corners still triangulate; merge each plane into one
+        # convex polygon.
+        bmesh.ops.dissolve_limit(bm, angle_limit=1e-4, verts=bm.verts[:], edges=bm.edges[:])
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-        # recalc_face_normals can flip a sliver triangle on a plane holding
-        # many coplanar points; on a convex hull every face faces away from
-        # the centroid.
+        # On a convex hull every face faces away from the centroid.
         center = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
         bm.normal_update()
         inward = [f for f in bm.faces if (f.calc_center_median() - center).dot(f.normal) < 0.0]
