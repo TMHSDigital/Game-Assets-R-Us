@@ -9,6 +9,7 @@ the collider.
 
 import bmesh
 import bpy
+from mathutils import Vector
 
 
 def convex_hull(points, name, collection=None):
@@ -22,6 +23,14 @@ def convex_hull(points, name, collection=None):
             bmesh.ops.delete(bm, geom=sorted(drop, key=lambda v: v.index), context="VERTS")
         bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-7)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        # recalc_face_normals can flip a sliver triangle on a plane holding
+        # many coplanar points; on a convex hull every face faces away from
+        # the centroid.
+        center = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
+        bm.normal_update()
+        inward = [f for f in bm.faces if (f.calc_center_median() - center).dot(f.normal) < 0.0]
+        if inward:
+            bmesh.ops.reverse_faces(bm, faces=inward)
         mesh = bpy.data.meshes.new(name)
         bm.to_mesh(mesh)
     finally:
