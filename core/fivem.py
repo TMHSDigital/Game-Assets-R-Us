@@ -26,6 +26,7 @@ import sys
 import bmesh
 import bpy
 
+from .exporters.roundtrip import discard_new_datablocks
 from .validators.report import write_json
 
 UV0, COLOR = "UVMap 0", "Color 1"
@@ -199,7 +200,9 @@ def _verify(exp_dir, files, expected):
         before = set(bpy.data.objects)
         folder, name = os.path.split(os.path.join(exp_dir, rel))
         problems = []
-        try:
+        # Sollumz creates meshes, materials, images and collections as well
+        # as objects; drop them all so imports do not pile up.
+        with discard_new_datablocks():
             bpy.ops.sollumz.import_assets(directory=folder, files=[{"name": name}])
             new = [o for o in bpy.data.objects if o not in before]
             models = [o for o in new if o.type == "MESH" and getattr(o, "sollum_type", "") == "sollumz_drawable_model"]
@@ -225,9 +228,6 @@ def _verify(exp_dir, files, expected):
                     problems.append(f"{lods} LOD levels != {want['lods']}")
                 if not bounds:
                     problems.append("no embedded collision")
-        finally:
-            for obj in [o for o in bpy.data.objects if o not in before]:
-                bpy.data.objects.remove(obj)
         results[rel] = {"passed": not problems, "problems": problems, "objects": 1}
     return results
 

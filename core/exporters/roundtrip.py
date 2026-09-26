@@ -8,6 +8,7 @@ import test inside each engine; that remains a documented TODO.
 Imports happen in a throwaway scene so the kit scene stays intact.
 """
 
+import contextlib
 import os
 import re
 
@@ -42,6 +43,25 @@ def _importer(path):
     return bpy.ops.wm.stl_import, {"filepath": path}
 
 
+# Datablock kinds an importer may create. Everything new of these kinds is
+# removed after each verification import, so large builds do not grow in
+# memory and later datablock names do not pick up .001 suffixes.
+IMPORT_DATA = ("objects", "meshes", "materials", "images", "textures", "node_groups", "collections",
+               "armatures", "actions", "curves", "cameras", "lights", "texts")
+
+
+@contextlib.contextmanager
+def discard_new_datablocks():
+    """Remove every datablock of IMPORT_DATA kinds created inside the block."""
+    before = {kind: set(getattr(bpy.data, kind)) for kind in IMPORT_DATA}
+    try:
+        yield
+    finally:
+        new = [d for kind in IMPORT_DATA for d in getattr(bpy.data, kind) if d not in before[kind]]
+        if new:
+            bpy.data.batch_remove(new)
+
+
 def _import(path):
     tmp = bpy.data.scenes.new("garu_roundtrip")
     # Same unit system as the export scene, so FBX unit metadata is read
@@ -49,25 +69,18 @@ def _import(path):
     tmp.unit_settings.system = bpy.context.scene.unit_settings.system
     tmp.unit_settings.scale_length = bpy.context.scene.unit_settings.scale_length
     before = set(bpy.data.objects)
-    before_meshes = set(bpy.data.meshes)
-    before_mats = set(bpy.data.materials)
     op, kwargs = _importer(path)
     try:
-        with bpy.context.temp_override(scene=tmp, view_layer=tmp.view_layers[0]):
-            op(**kwargs)
-        bpy.context.view_layer.update()
-        tmp.view_layers[0].update()
-        new = [o for o in bpy.data.objects if o not in before]
-        # The originals still exist, so imported names get a .001 suffix.
-        return {re.sub(r"\.\d{3}$", "", obj.name): {"tris": _tris(obj), "dims": _dims(obj)}
-                for obj in new if obj.type == "MESH"}
+        with discard_new_datablocks():
+            with bpy.context.temp_override(scene=tmp, view_layer=tmp.view_layers[0]):
+                op(**kwargs)
+            bpy.context.view_layer.update()
+            tmp.view_layers[0].update()
+            new = [o for o in bpy.data.objects if o not in before]
+            # The originals still exist, so imported names get a .001 suffix.
+            return {re.sub(r"\.\d{3}$", "", obj.name): {"tris": _tris(obj), "dims": _dims(obj)}
+                    for obj in new if obj.type == "MESH"}
     finally:
-        for obj in [o for o in bpy.data.objects if o not in before]:
-            bpy.data.objects.remove(obj)
-        for mesh in [m for m in bpy.data.meshes if m not in before_meshes]:
-            bpy.data.meshes.remove(mesh)
-        for mat in [m for m in bpy.data.materials if m not in before_mats]:
-            bpy.data.materials.remove(mat)
         bpy.data.scenes.remove(tmp)
 
 
