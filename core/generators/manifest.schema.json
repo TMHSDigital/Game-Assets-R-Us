@@ -9,8 +9,8 @@
     "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
     "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "api_version": {"type": "integer", "minimum": 1},
-    "module": {"type": "string", "pattern": "\\.py$"},
-    "kit": {"type": "string", "pattern": "\\.toml$"},
+    "module": {"type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*\\.py$", "$comment": "a file name in the generator directory, no path separators"},
+    "kit": {"type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*\\.toml$", "$comment": "a file name in the generator directory, no path separators"},
     "license": {"enum": ["CC0-1.0", "commercial-eula"]},
     "description": {"type": "string"}
   }

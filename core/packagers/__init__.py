@@ -13,6 +13,7 @@ marketplace.py for the checks and their sources).
 import json
 import os
 
+from ..contract.load import confined_path
 from ..validators.legal_checks import scan_names
 from . import marketplace
 from .readme import kit_readme
@@ -28,7 +29,9 @@ def _license_text(contract):
     rel = legal.get("license_file") if legal["license"] == "CC0-1.0" else legal.get("eula_file")
     if not rel:
         raise PackagingError(f"no license file named for license {legal['license']}")
-    path = os.path.join(contract["_dir"], rel)
+    path = confined_path(contract["_dir"], rel)
+    if path is None:
+        raise PackagingError(f"license file '{rel}' is outside the kit directory")
     if not os.path.isfile(path):
         raise PackagingError(f"license file missing: {path}")
     with open(path, encoding="utf-8") as fh:
