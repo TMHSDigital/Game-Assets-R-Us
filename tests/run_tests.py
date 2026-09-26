@@ -24,7 +24,7 @@ def main():
     parser = argparse.ArgumentParser(prog="run_tests.py")
     parser.add_argument("--pattern", default="test_*.py")
     parser.add_argument("--skip-slow", action="store_true",
-                        help="skip tests that launch extra Blender processes (determinism)")
+                        help="skip slow tests (extra Blender processes, full renders)")
     args = parser.parse_args(argv)
     if args.skip_slow:
         os.environ["GARU_SKIP_SLOW"] = "1"
