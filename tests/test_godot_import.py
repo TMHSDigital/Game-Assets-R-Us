@@ -56,6 +56,8 @@ class GodotImport(unittest.TestCase):
             fh.write('config_version=5\n\n[application]\nconfig/name="garu_import_check"\n')
         shutil.copy(CHECK, project)
         models = [f for f in manifest["files"] if f["name"].endswith(".glb")]
+        # An export regression producing no GLB files must not pass vacuously.
+        self.assertTrue(models, "the godot export manifest lists no .glb files")
         for f in models:
             shutil.copy(os.path.join(exports, f["name"]), os.path.join(project, "models"))
         _run([GODOT, "--headless", "--path", project, "--import"])
@@ -63,6 +65,8 @@ class GodotImport(unittest.TestCase):
         _run([GODOT, "--headless", "--path", project, "--script", "res://godot_check.gd", "--", out])
         with open(out, encoding="utf-8") as fh:
             seen = json.load(fh)
+        self.assertEqual(sorted(seen), sorted(f["name"] for f in models),
+                         "Godot did not report exactly the exported GLB files")
 
         problems = []
         for f in models:

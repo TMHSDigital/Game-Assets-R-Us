@@ -69,9 +69,11 @@ Other clip standards have not been checked.
 ## Engine import verification
 Exports are verified by re-importing into Blender (names, triangle counts,
 per-axis size). Godot is also verified inside the engine:
-`tests/test_godot_import.py` imports all 45 godot-profile GLB files into a
-headless Godot 4 project (Godot 4.5.2 on 2026-09-25) and checks Y-up sizes,
-names and that every `-convcolonly` collider becomes a convex physics shape.
+`tests/test_godot_import.py` imports every godot-profile GLB file listed in
+the export manifest (45 for the sampler) into a headless Godot 4 project
+(Godot 4.5.2 on 2026-09-25), fails if the manifest lists none or Godot
+reports a different set, and checks Y-up sizes, names and that every
+`-convcolonly` collider becomes a convex physics shape.
 It runs when Godot is available (`scripts/test.ps1 -Godot <path>` or
 GARU_GODOT) and is skipped in CI.
 
