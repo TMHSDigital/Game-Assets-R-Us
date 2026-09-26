@@ -25,34 +25,36 @@ def sha256(path):
     return h.hexdigest()
 
 
-def _profile_name(profile, base, role, index=0, lod=0):
+def _exported_name(contract, base, role, index=0, lod=0):
+    profile = contract["profile"]
     if role == "lod0":
         return base + profile["lod0_suffix"]
     if role == "lod":
-        return f"{base}_LOD{lod}"
+        return contract["style"]["lod_pattern"].format(name=base, n=lod)
     return profile["collider_pattern"].format(name=base, index=index)
 
 
 def mesh_jobs(scene):
     """(file name, [(object, exported name)]) for every file a mesh profile writes."""
-    profile = scene.contract["profile"]
+    contract = scene.contract
+    profile = contract["profile"]
     ext = profile["format"]
     jobs = []
     for ps in scene.sets:
         base = ps.name
-        main = [(ps.lod0, _profile_name(profile, base, "lod0"))]
+        main = [(ps.lod0, _exported_name(contract, base, "lod0"))]
         if profile["lod_mode"] == "embedded":
-            main += [(o, _profile_name(profile, base, "lod", lod=i + 1)) for i, o in enumerate(ps.lods)]
+            main += [(o, _exported_name(contract, base, "lod", lod=i + 1)) for i, o in enumerate(ps.lods)]
         if profile["collider_mode"] == "embedded":
-            main += [(o, _profile_name(profile, base, "collider", index=i)) for i, o in enumerate(ps.colliders)]
+            main += [(o, _exported_name(contract, base, "collider", index=i)) for i, o in enumerate(ps.colliders)]
         jobs.append((f"{base}.{ext}", main))
         if profile["lod_mode"] == "separate_files":
             for i, o in enumerate(ps.lods):
-                name = _profile_name(profile, base, "lod", lod=i + 1)
+                name = _exported_name(contract, base, "lod", lod=i + 1)
                 jobs.append((f"{name}.{ext}", [(o, name)]))
         if profile["collider_mode"] == "separate_files" and ps.colliders:
             jobs.append((f"{base}_colliders.{ext}",
-                         [(o, _profile_name(profile, base, "collider", index=i)) for i, o in enumerate(ps.colliders)]))
+                         [(o, _exported_name(contract, base, "collider", index=i)) for i, o in enumerate(ps.colliders)]))
     return jobs
 
 

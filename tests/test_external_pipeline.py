@@ -44,6 +44,16 @@ class ExternalGeneratorPipeline(unittest.TestCase):
         manifest = self._run("stl_print")
         self.assertEqual([f["name"] for f in manifest["files"]], ["SM_DEMO_plinth_clean.stl"])
 
+    def test_lod_pattern_names_exports(self):
+        from core.exporters import mesh_jobs
+        info = get("demo-external", extra_paths=[EXTERNAL])
+        data = thaw(resolve(load_contract(info.contract_path), "gltf_web"))
+        data["style"]["lod_pattern"] = "{name}_lod{n:02d}"
+        scene = pipeline.generate(freeze(data), load_module(info), 7)
+        files = [f for f, _ in mesh_jobs(scene)]
+        self.assertIn("SM_DEMO_plinth_clean_lod01.glb", files)
+        self.assertNotIn("SM_DEMO_plinth_clean_LOD1.glb", files)
+
     def test_box_collider(self):
         info = get("demo-external", extra_paths=[EXTERNAL])
         data = thaw(resolve(load_contract(info.contract_path), "gltf_web"))
