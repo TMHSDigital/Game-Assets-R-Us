@@ -96,12 +96,6 @@ class Determinism(unittest.TestCase):
         self.assertFalse(any("_clean" in n for n in changed), "clean variants must not depend on the seed")
         print(f"DETERMINISM seed 1337 vs 7: {len(changed)} of {len(a)} gltf_web files differ (weathered only)")
 
-    # Known failure: the preview PNGs carry Blender's render metadata
-    # (tEXt Date and RenderTime chunks), so the zips differ although every
-    # pixel is identical. Remove this decorator once core/render turns the
-    # metadata stamps off; an unexpected success fails the suite as a
-    # reminder.
-    @unittest.expectedFailure
     def test_full_pipeline_same_zip_bytes(self):
         # The shipped artifact: validate, bake, render and package included,
         # the dist/*.zip must be byte-identical across two separate runs.
