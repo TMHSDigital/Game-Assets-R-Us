@@ -50,6 +50,9 @@ def make_lod(src, budget, name, attempts=10):
         lod = _decimated_copy(src, ratio, name)
         if triangle_count(lod) <= budget:
             return lod
+        # Remove the mesh too, or the next attempt's mesh is named name.001.
+        mesh = lod.data
         bpy.data.objects.remove(lod)
+        bpy.data.meshes.remove(mesh)
         ratio *= 0.9
     raise RuntimeError(f"could not decimate {src.name} to {budget} triangles")
