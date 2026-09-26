@@ -67,6 +67,7 @@ def _fresh_dir(path):
 def cmd_run(args):
     from core.contract import ContractError, load_contract, resolve
     from core.generators import RegistryError, get, load_module
+    from core.generators.registry import contract_mismatches
 
     stages = [s.strip() for s in args.stages.split(",") if s.strip()]
     unknown = [s for s in stages if s not in STAGES]
@@ -79,9 +80,9 @@ def cmd_run(args):
     try:
         info = get(args.kit, args.generator_path)
         contract = load_contract(info.contract_path)
-        if contract["kit"]["generator"] != info.id:
-            raise ContractError(info.contract_path, [("/kit/generator", f"names '{contract['kit']['generator']}', "
-                                                      f"but the manifest id is '{info.id}'")])
+        mismatches = contract_mismatches(info, contract)
+        if mismatches:
+            raise ContractError(info.contract_path, mismatches)
         resolved = resolve(contract, args.profile)
     except (ContractError, RegistryError) as exc:
         print(f"ERROR {exc}")

@@ -19,11 +19,11 @@ my-kit/
 
 ```toml
 id = "my-kit"            # must equal kit.generator in kit.toml
-version = "1.0.0"
+version = "1.0.0"        # must equal kit.version in kit.toml
 api_version = 1          # must equal core.API_VERSION
 module = "generator.py"
 kit = "kit.toml"
-license = "commercial-eula"   # or CC0-1.0
+license = "commercial-eula"   # or CC0-1.0; must equal legal.license in kit.toml
 ```
 
 `module` and `kit` are plain file names inside the generator directory, and
