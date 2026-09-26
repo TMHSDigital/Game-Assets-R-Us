@@ -278,6 +278,39 @@ class LegalCheckFixtures(unittest.TestCase):
         bpy.data.materials.new("GucciGold")
         self.assertEqual(legal_checks.check_brand(self.c).status, "fail")
 
+    def test_brand_scan_covers_all_data_surfaces(self):
+        fx.wall(self.c)
+        self.assertEqual(legal_checks.check_brand(self.c).status, "pass")
+        mesh = bpy.data.meshes[0]
+        coll = bpy.data.collections.new("props")
+        plants = [
+            lambda: bpy.data.node_groups.new("NikeSwoosh", "ShaderNodeTree"),
+            lambda: bpy.data.worlds.new("GucciWorld"),
+            lambda: bpy.data.texts.new("notes").write("put the Ferrari badge here\n"),
+            lambda: bpy.data.actions.new("PorscheSpin"),
+            lambda: mesh.__setitem__("garu_meta", {"inner": {"label": "Rolex"}}),
+            lambda: coll.__setitem__("tags", ["stone", "Prada"]),
+            lambda: bpy.context.scene.__setitem__("source", "Warhammer terrain"),
+        ]
+        data = (bpy.data.node_groups, bpy.data.worlds, bpy.data.texts, bpy.data.actions)
+        before = [set(c) for c in data]
+        for plant in plants:
+            plant()
+            result = legal_checks.check_brand(self.c)
+            self.assertEqual(result.status, "fail", result.detail)
+            for owner, key in ((mesh, "garu_meta"), (coll, "tags"), (bpy.context.scene, "source")):
+                if key in owner:
+                    del owner[key]
+            for collection, old in zip(data, before):
+                for block in set(collection) - old:
+                    collection.remove(block)
+            self.assertEqual(legal_checks.check_brand(self.c).status, "pass")
+
+    def test_scan_names_flags_export_files(self):
+        self.assertEqual(legal_checks.scan_names(["kit-1.0-unity/models/SM_SDW_wall_straight_clean.fbx"]), [])
+        hits = legal_checks.scan_names(["kit-1.0-unity/models/SM_LegoBrick_01.fbx"])
+        self.assertEqual([h["mark"] for h in hits], ["lego"])
+
     def test_external_image_fails_provenance(self):
         import bpy
         self.assertEqual(legal_checks.check_provenance(self.c).status, "pass")
