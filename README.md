@@ -39,12 +39,21 @@ See `docs/contract.md`, `docs/plugins.md`, `docs/profiles.md` and
 This repository uses two licenses, split by what the file is:
 
 - **Code** (everything under `core/`, `profiles/`, `scripts/`, `tests/`,
-  `kits/*/generator.py`, CI workflows): **GPL-3.0-or-later**. See `LICENSE`.
-  Every source file carries an `SPDX-License-Identifier` header.
+  `kits/*/generator.py` and `kits/*/generator.toml`, CI workflows):
+  **GPL-3.0-or-later**. See `LICENSE`.
+- **Kit contracts** (`kits/*/kit.toml`, including the test fixture
+  `tests/fixtures/external_gen/demo-external/kit.toml`): **CC0-1.0**, so a
+  contract can be copied as the starting point for a new kit.
 - **Generated sampler assets** (the meshes, previews and packages produced by
   `kits/stone-dungeon-wall-sampler`): **CC0-1.0**. See
   `kits/stone-dungeon-wall-sampler/assets/LICENSE-CC0` and
-  `LICENSES/CC0-1.0.txt`.
+  `LICENSES/CC0-1.0.txt`. The external generator test fixture ships its own
+  copy, `tests/fixtures/external_gen/demo-external/LICENSE-CC0`, for the
+  assets it produces.
+
+Every source file (`.py`, `.ps1`, `.toml`, `.yml`, `.gd` and the JSON
+schemas) carries an `SPDX-License-Identifier` header naming its license;
+`tests/test_repo_hygiene.py` enforces this.
 
 Assets produced by the sampler generator are dedicated to the public domain
 under CC0-1.0. GPL-3.0-or-later covers the generator code, not its output.
