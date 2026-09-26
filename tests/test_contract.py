@@ -102,6 +102,24 @@ class ContractTests(unittest.TestCase):
         errs = self._errors(lambda d: d["grid"].__setitem__("cell_size", 2.0))
         self.assertTrue(any("unknown key 'cell_size'" in m for _, m in errs), errs)
 
+    def test_naming_pattern_sanitized(self):
+        for bad in ("../{piece}", "{kit.__class__}_{piece}", "{foo}_{piece}", "{piece!r}", "{piece:>40}",
+                    "{piece", "SM {piece}"):
+            errs = self._errors(lambda d: d["style"].__setitem__("naming_pattern", bad))
+            self.assertTrue(any("naming_pattern" in p for p, _ in errs), (bad, errs))
+        self.assertEqual(self._errors(lambda d: d["style"].__setitem__("naming_pattern", "{kit}-{piece}_{variant}")),
+                         [])
+
+    def test_lod_and_collider_patterns_sanitized(self):
+        errs = self._errors(lambda d: d["style"].__setitem__("lod_pattern", "{name}/LOD{n}"))
+        self.assertTrue(any("lod_pattern" in p for p, _ in errs), errs)
+        errs = self._errors(lambda d: d["style"].__setitem__("collider_pattern", "UCX_{name}_{index:{name}}"))
+        self.assertTrue(any("collider_pattern" in p for p, _ in errs), errs)
+        contract = copy.deepcopy(load_contract(SAMPLER))
+        contract["profiles"] = {"unity": {"collider_pattern": "{name}/{index}"}}
+        with self.assertRaisesRegex(ContractError, "collider_pattern"):
+            resolve(contract, "unity")
+
     def _load_text(self, text):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "kit.toml")

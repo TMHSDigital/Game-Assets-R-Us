@@ -51,6 +51,22 @@ every mesh once into profile units, so one validation rule covers all units.
 
 See `kits/stone-dungeon-wall-sampler/kit.toml` for a complete example.
 
+## Name templates
+
+`naming_pattern`, `lod_pattern` and `collider_pattern` (and a profile's
+`collider_pattern`) are Python `str.format` templates whose results become
+object and file names. They may use only these placeholders, with no
+attribute access or `!` conversions; literal text is limited to letters,
+digits, `_` and `-`:
+
+| Template | Placeholders |
+|---|---|
+| `naming_pattern` | `{prefix}`, `{kit}`, `{piece}` (required), `{variant}` |
+| `lod_pattern` | `{name}`, `{n}` (LOD number) |
+| `collider_pattern` | `{name}`, `{index}` (part number) |
+
+Integer placeholders accept a width spec such as `{index:02d}`.
+
 ## Seams
 
 `seams` lists the piece faces that meet neighbours (`x0`, `x1`, `y0`, `y1`).

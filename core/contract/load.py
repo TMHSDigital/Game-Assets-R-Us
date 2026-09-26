@@ -3,6 +3,8 @@
 run the semantic checks that JSON Schema cannot express."""
 
 import os
+import re
+import string
 import tomllib
 
 from . import schema_lite
@@ -38,10 +40,46 @@ def confined_path(base, rel):
 
 LEGAL_FILES = ("license_file", "eula_file")
 
+# Name templates become object and file names: {field: (placeholders, integer placeholders)}.
+NAME_TEMPLATES = {
+    "naming_pattern": ({"prefix", "kit", "piece", "variant"}, set()),
+    "lod_pattern": ({"name", "n"}, {"n"}),
+    "collider_pattern": ({"name", "index"}, {"index"}),
+}
+_SAFE_LITERAL = re.compile(r"^[A-Za-z0-9_-]*$")
+_INT_SPEC = re.compile(r"^0?[0-9]{0,2}d?$")
+
+
+def name_template_errors(template, fields, int_fields=()):
+    """Problems with a str.format name template: only the given plain
+    placeholders (a width spec such as :02d on integer ones), and literal
+    text limited to letters, digits, '_' and '-'."""
+    try:
+        parts = list(string.Formatter().parse(template))
+    except ValueError as exc:
+        return [f"invalid template {template!r}: {exc}"]
+    problems = []
+    for literal, field, spec, conversion in parts:
+        if not _SAFE_LITERAL.match(literal):
+            problems.append(f"text {literal!r} may only use letters, digits, '_' and '-'")
+        if field is None:
+            continue
+        if field not in fields:
+            problems.append(f"unknown placeholder {{{field}}}; allowed: {', '.join(sorted(fields))}")
+        elif conversion:
+            problems.append(f"placeholder {{{field}}} may not use a !{conversion} conversion")
+        elif spec and (field not in int_fields or not _INT_SPEC.match(spec)):
+            problems.append(f"placeholder {{{field}}} has an unsupported format spec {spec!r}")
+    return problems
+
 
 def semantic_errors(data):
     """Checks beyond the schema. Returns (json_pointer, message) pairs."""
     errors = []
+    style = data.get("style", {})
+    for key, (fields, int_fields) in NAME_TEMPLATES.items():
+        if key in style:
+            errors += [(f"/style/{key}", m) for m in name_template_errors(style[key], fields, int_fields)]
     pieces = data.get("pieces", [])
     ids = [p.get("id") for p in pieces]
     for pid in sorted({i for i in ids if ids.count(i) > 1}):

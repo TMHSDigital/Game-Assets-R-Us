@@ -15,7 +15,7 @@ import tomllib
 from types import MappingProxyType
 
 from . import schema_lite
-from .load import ContractError
+from .load import NAME_TEMPLATES, ContractError, name_template_errors
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROFILES_DIR = os.path.join(REPO_ROOT, "profiles")
@@ -70,6 +70,10 @@ def resolve(contract, profile_name):
     merged = deep_merge(load_profile(profile_name), contract.get("profiles", {}).get(profile_name, {}))
     schema_path = os.path.join(PROFILES_DIR, profile_name, "schema.json")
     errors = schema_lite.validate(merged, schema_lite.load_schema(schema_path))
+    if not errors and "collider_pattern" in merged:
+        fields, int_fields = NAME_TEMPLATES["collider_pattern"]
+        errors = [("/collider_pattern", m)
+                  for m in name_template_errors(merged["collider_pattern"], fields, int_fields)]
     if errors:
         raise ContractError(f"{contract.get('_path', '?')} [profile {profile_name}]",
                             [(f"/profiles/{profile_name}{p}", m) for p, m in errors])
