@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""UV channels: the lightmap margin is honored at every allowed value."""
+"""UV channels: the lightmap margin is honored at every allowed value, and
+box projection follows world-space normals."""
 
 import math
 import unittest
@@ -50,6 +51,21 @@ class LightmapMargin(unittest.TestCase):
                 self.assertGreaterEqual(border, margin - 1e-4)
                 # And not much more: the margin is not silently clamped or inflated.
                 self.assertLess(border, margin * 1.5)
+
+
+class BoxProjection(unittest.TestCase):
+    def test_rotated_object_projects_along_world_normal(self):
+        obj = _cube()
+        obj.rotation_euler = (0.3, 0.0, math.radians(90.0))
+        bpy.context.view_layer.update()
+        uv.box_project(obj, "UVMap", 0.5)
+        layer = obj.data.uv_layers["UVMap"]
+        for poly in obj.data.polygons:
+            pts = [tuple(layer.data[li].uv) for li in poly.loop_indices]
+            area = abs(sum(pts[k][0] * pts[k - 1][1] - pts[k - 1][0] * pts[k][1] for k in range(len(pts)))) / 2
+            # Projecting along the wrong axis collapses a face to a line.
+            with self.subTest(face=poly.index):
+                self.assertGreater(area, 0.1)
 
 
 if __name__ == "__main__":

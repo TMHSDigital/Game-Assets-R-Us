@@ -34,9 +34,12 @@ def box_project(obj, channel, scale_per_cell, cell=1.0):
     mesh = obj.data
     layer = mesh.uv_layers.get(channel) or mesh.uv_layers.new(name=channel)
     mw = obj.matrix_world
+    # Normals transform by the inverse transpose, into the same world space
+    # as the projected positions.
+    nmat = mw.to_3x3().inverted_safe().transposed()
     k = scale_per_cell / cell
     for poly in mesh.polygons:
-        n = poly.normal
+        n = nmat @ poly.normal
         ax = max(range(3), key=lambda i: abs(n[i]))
         for li in poly.loop_indices:
             co = mw @ mesh.vertices[mesh.loops[li].vertex_index].co
