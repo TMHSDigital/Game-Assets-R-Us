@@ -100,7 +100,8 @@ class RegistryTests(unittest.TestCase):
         try:
             self.assertEqual(confined_path(base, "assets/LICENSE"),
                              os.path.join(os.path.realpath(base), "assets", "LICENSE"))
-            for bad in ("../x", "a/../../x", "a\\..\\x", os.path.abspath(os.sep), "C:x", "", None):
+            for bad in ("../x", "a/../../x", "a\\..\\x", os.path.abspath(os.sep), "C:x", "C:\\x",
+                        "\\x", "/x", "\\\\srv\\share\\x", "", None):
                 self.assertIsNone(confined_path(base, bad), bad)
         finally:
             shutil.rmtree(base)
