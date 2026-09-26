@@ -19,6 +19,26 @@ class ContractError(Exception):
         super().__init__(f"invalid contract {path}:\n{lines}")
 
 
+def confined_path(base, rel):
+    """Absolute path of `rel` inside directory `base`, or None when `rel` is
+    absolute, uses '..' or resolves (through symlinks) outside `base`."""
+    if not isinstance(rel, str) or not rel or os.path.isabs(rel) or os.path.splitdrive(rel)[0]:
+        return None
+    if ".." in rel.replace("\\", "/").split("/"):
+        return None
+    root = os.path.realpath(base)
+    path = os.path.realpath(os.path.join(root, rel))
+    try:
+        if os.path.commonpath([path, root]) != root:
+            return None
+    except ValueError:  # different drives
+        return None
+    return path
+
+
+LEGAL_FILES = ("license_file", "eula_file")
+
+
 def semantic_errors(data):
     """Checks beyond the schema. Returns (json_pointer, message) pairs."""
     errors = []
@@ -53,8 +73,16 @@ def load_contract(path):
     errors = schema_lite.validate(data, schema)
     if not errors:
         errors = semantic_errors(data)
+    kit_dir = os.path.dirname(os.path.abspath(path))
+    if not errors:
+        # License text is copied into the distributable zip: it must come
+        # from the kit directory, never from elsewhere on the build machine.
+        for key in LEGAL_FILES:
+            rel = data["legal"].get(key)
+            if rel is not None and confined_path(kit_dir, rel) is None:
+                errors.append((f"/legal/{key}", f"'{rel}' must be a relative path inside the kit directory"))
     if errors:
         raise ContractError(path, errors)
     data["_path"] = os.path.abspath(path)
-    data["_dir"] = os.path.dirname(os.path.abspath(path))
+    data["_dir"] = kit_dir
     return data

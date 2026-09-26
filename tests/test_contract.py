@@ -102,6 +102,19 @@ class ContractTests(unittest.TestCase):
         errs = self._errors(lambda d: d["grid"].__setitem__("cell_size", 2.0))
         self.assertTrue(any("unknown key 'cell_size'" in m for _, m in errs), errs)
 
+    def _load_text(self, text):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "kit.toml")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text)
+            return load_contract(path)
+
+    def test_license_file_confined_to_kit(self):
+        text = open(SAMPLER, encoding="utf-8").read()
+        for bad in ("../../README.md", ROOT.replace("\\", "/") + "/README.md"):
+            with self.assertRaisesRegex(ContractError, "inside the kit directory"):
+                self._load_text(text.replace('license_file = "assets/LICENSE-CC0"', f'license_file = "{bad}"'))
+
     def test_load_raises(self):
         data = _sampler_data()
         text = open(SAMPLER, encoding="utf-8").read().replace('license = "CC0-1.0"', 'license = "GPL"')

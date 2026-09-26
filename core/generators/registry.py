@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 from .. import API_VERSION
 from ..contract import schema_lite
+from ..contract.load import confined_path
 
 ENV_VAR = "GARU_GENERATOR_PATH"
 MANIFEST = "generator.toml"
@@ -78,9 +79,11 @@ def _read_manifest(directory, source):
         raise RegistryError(
             f"{path}: generator '{data['id']}' targets api_version {data['api_version']}, "
             f"this core provides api_version {API_VERSION}")
-    module_path = os.path.join(directory, data["module"])
-    contract_path = os.path.join(directory, data["kit"])
-    for p in (module_path, contract_path):
+    module_path = confined_path(directory, data["module"])
+    contract_path = confined_path(directory, data["kit"])
+    for key, p in (("module", module_path), ("kit", contract_path)):
+        if p is None:
+            raise RegistryError(f"{path}: {key} '{data[key]}' resolves outside the generator directory")
         if not os.path.isfile(p):
             raise RegistryError(f"{path}: missing file {p}")
     return GeneratorInfo(

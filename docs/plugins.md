@@ -26,6 +26,10 @@ kit = "kit.toml"
 license = "commercial-eula"   # or CC0-1.0
 ```
 
+`module` and `kit` are plain file names inside the generator directory, and
+`legal.license_file` / `legal.eula_file` are relative paths inside the kit
+directory. Absolute paths, `..` and symlinks that lead outside are rejected.
+
 ## Discovery
 
 `core/generators/registry.py` scans, in order:

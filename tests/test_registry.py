@@ -78,6 +78,33 @@ class RegistryTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
+    def test_module_path_confined(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            dst = os.path.join(tmp, "escape")
+            shutil.copytree(os.path.join(EXTERNAL, "demo-external"), dst)
+            path = os.path.join(dst, "generator.toml")
+            base = open(path, encoding="utf-8").read()
+            for bad in ("../generator.py", "sub/generator.py", os.path.join(dst, "generator.py")):
+                open(path, "w", encoding="utf-8").write(
+                    base.replace('module = "generator.py"', f"module = {bad!r}".replace("'", '"')
+                                 .replace("\\", "/")))
+                with self.assertRaisesRegex(RegistryError, "invalid manifest"):
+                    discover(extra_paths=[tmp])
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_confined_path(self):
+        from core.contract.load import confined_path
+        base = tempfile.mkdtemp()
+        try:
+            self.assertEqual(confined_path(base, "assets/LICENSE"),
+                             os.path.join(os.path.realpath(base), "assets", "LICENSE"))
+            for bad in ("../x", "a/../../x", "a\\..\\x", os.path.abspath(os.sep), "C:x", "", None):
+                self.assertIsNone(confined_path(base, bad), bad)
+        finally:
+            shutil.rmtree(base)
+
     def test_unknown_id(self):
         with self.assertRaisesRegex(RegistryError, "no generator 'nope'"):
             get("nope")
