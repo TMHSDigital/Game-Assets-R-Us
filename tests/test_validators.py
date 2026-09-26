@@ -192,6 +192,21 @@ class CoreCheckFixtures(unittest.TestCase):
             after = sorted(tuple(round(c, 4) for c in obj.matrix_world @ v.co) for v in obj.data.vertices)
             self.assertEqual(world, after, break_it.__name__)
 
+    def test_empty_or_open_collider_fails(self):
+        obj = fx.wall(self.c)
+        ps = fx.piece_set(obj)
+        ctx = self.ctx(ps)
+        name = api.collider_name(self.c, obj.name, 0)
+        cell = self.c["profile"]["cell_size"]
+        ps.colliders = [fx.box(name, (0, 0, 0), (cell, 0.25 * cell, 2 * cell))]
+        self.assertEqual(status(core_checks.check_colliders(ctx, ps), "CORE.COLLIDER"), "pass")
+        empty = bpy.data.objects.new(name + "_empty", bpy.data.meshes.new(name + "_empty"))
+        bpy.context.scene.collection.objects.link(empty)
+        ps.colliders = [empty]
+        self.assertEqual(status(core_checks.check_colliders(ctx, ps), "CORE.COLLIDER"), "fail")
+        ps.colliders = [fx.box(name + "_open", (0, 0, 0), (cell, 0.25 * cell, 2 * cell), open_top=True)]
+        self.assertEqual(status(core_checks.check_colliders(ctx, ps), "CORE.COLLIDER"), "fail")
+
     def test_uv_overlap_detected(self):
         a = ((0, 0), (1, 0), (0, 1))
         self.assertAlmostEqual(uv_mod.intersection_area(a, a), 0.5)

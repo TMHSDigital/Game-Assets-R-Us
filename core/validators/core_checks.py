@@ -261,12 +261,18 @@ def check_colliders(ctx, ps):
         h = metrics.hygiene(obj)
         convex, worst = metrics.is_convex(obj, ctx.tol)
         faces = len(obj.data.polygons)
-        part_ok = convex and faces <= col["max_faces_per_part"] and h["non_manifold_edges"] == 0
+        # A closed solid needs at least a tetrahedron's 4 faces and a positive
+        # volume; an empty or flat part would pass the other tests vacuously.
+        closed = (faces >= 4 and h["signed_volume"] > 0 and h["boundary_edges"] == 0
+                  and h["non_manifold_edges"] == 0 and h["flipped_edges"] == 0)
+        part_ok = closed and convex and faces <= col["max_faces_per_part"]
         good = good and part_ok
         parts[obj.name] = {"faces": faces, "convex": convex, "convexity_error": worst,
-                           "non_manifold_edges": h["non_manifold_edges"]}
+                           "closed": closed, "volume": h["signed_volume"], "boundary_edges": h["boundary_edges"],
+                           "non_manifold_edges": h["non_manifold_edges"], "flipped_edges": h["flipped_edges"]}
     return [verdict("CORE.COLLIDER", good,
-                    f"1..{col['max_parts']} closed convex parts, each <= {col['max_faces_per_part']} faces",
+                    f"1..{col['max_parts']} closed convex parts with volume, "
+                    f"each 4..{col['max_faces_per_part']} faces",
                     parts=parts, count=len(ps.colliders))]
 
 
