@@ -426,25 +426,105 @@ def build(contract, seed, piece_ids):
     return objects
 
 
+def _silhouette(obj):
+    """Top of an x-extruded piece as a function of x: the highest point of
+    any mesh edge above x (exact for a piecewise-linear surface)."""
+    mw = obj.matrix_world
+    co = [mw @ v.co for v in obj.data.vertices]
+    edges = []
+    for e in obj.data.edges:
+        a, b = co[e.vertices[0]], co[e.vertices[1]]
+        if a.x > b.x:
+            a, b = b, a
+        edges.append((a.x, a.z, b.x, b.z))
+
+    def top(x):
+        best = -math.inf
+        for x0, z0, x1, z1 in edges:
+            if x0 - EPS <= x <= x1 + EPS:
+                z = max(z0, z1) if x1 - x0 < EPS else z0 + (z1 - z0) * (x - x0) / (x1 - x0)
+                best = max(best, z)
+        return best
+
+    return top, sorted({round(c.x, 6) for c in co})
+
+
+def _ruined_prism(top, xs, x0, x1, z0, t, h, slack):
+    """Box over [x0, x1] whose top is a sloped line kept under the broken
+    silhouette (plus `slack`, the chamfer that clean boxes also cover), so
+    no collision sits above the rubble."""
+    samples = sorted({x0, x1, *[x for x in xs if x0 < x < x1],
+                      *[x0 + (x1 - x0) * i / 50 for i in range(1, 50)]})
+    za, zb = min(top(x0) + slack, h), min(top(x1) + slack, h)
+
+    def line(x):
+        return za + (zb - za) * (x - x0) / (x1 - x0)
+
+    drop = max(0.0, max(line(x) - (top(x) + slack) for x in samples))
+    za, zb = za - drop, zb - drop
+    return [(x, y, z) for x, z in ((x0, z0), (x0, za), (x1, z0), (x1, zb)) for y in (0.0, t)]
+
+
+def _clipped_points(obj, lo, hi):
+    """Vertices of the mesh cut to an axis-aligned box, including the new
+    vertices on the cut planes. Their hull is exact where the clipped
+    geometry is convex."""
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(obj.data)
+        bm.transform(obj.matrix_world)
+        for axis in range(3):
+            for value, sign in ((lo[axis], -1.0), (hi[axis], 1.0)):
+                no = Vector((0.0, 0.0, 0.0))
+                no[axis] = sign
+                co = Vector((0.0, 0.0, 0.0))
+                co[axis] = value
+                bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:],
+                                       dist=1e-7, plane_co=co, plane_no=no, clear_outer=True)
+        return sorted({tuple(round(c, 6) for c in v.co) for v in bm.verts})
+    finally:
+        bm.free()
+
+
 def build_colliders(contract, obj):
-    """Convex parts that keep doorways walkable and corners hollow."""
+    """Convex parts that keep doorways walkable and corners hollow. Ruined
+    parts follow the broken top so no invisible wall stands above rubble."""
     from core.geometry import collider
     piece = api.pieces_by_id(contract)[obj[api.PROP_PIECE]]
     t = contract["grid"]["wall_thickness_cells"]
     h = piece["height_cells"]
     fx, fy = piece["footprint_cells"]
+    pid = piece["id"]
+    base = obj.name
+    coll = obj.users_collection[0] if obj.users_collection else None
     boxes = {
         "wall_straight": [((0, 0, 0), (fx, t, h))],
         "doorway": [((0, 0, 0), (0.25, t, h)), ((0.75, 0, 0), (fx, t, h)), ((0.25, 0, 1.25), (0.75, t, h))],
         "corner_outer": [((0, 0, 0), (fx, t, h)), ((0, t, 0), (t, fy, h))],
         "floor_2x2": [((0, 0, 0), (fx, fy, h))],
-    }.get(piece["id"])
-    base = obj.name
-    if boxes is None:
+    }.get(pid)
+    ruined = obj[api.PROP_VARIANT] == "ruined"
+    if ruined and pid in ("wall_straight", "doorway"):
+        # Four sloped prisms under the jagged top (max_parts is 4): the full
+        # height ends and two halves of the broken span, or for a doorway the
+        # jambs and two halves of the lintel.
+        top, xs = _silhouette(obj)
+        slack = contract["style"]["bevel_width_cells"]
+        m = RUIN_END_MARGIN
+        spans = ([(0.0, m, 0.0), (m, fx / 2, 0.0), (fx / 2, fx - m, 0.0), (fx - m, fx, 0.0)]
+                 if pid == "wall_straight" else
+                 [(0.0, 0.25, 0.0), (0.25, 0.5, 1.25), (0.5, 0.75, 1.25), (0.75, fx, 0.0)])
+        parts = [collider.convex_hull(_ruined_prism(top, xs, x0, x1, z0, t, h, slack),
+                                      api.collider_name(contract, base, i), coll)
+                 for i, (x0, x1, z0) in enumerate(spans)]
+    elif ruined and pid == "corner_outer":
+        # Each arm, cut by the ruin planes, is still convex: its hull is exact.
+        parts = [collider.convex_hull(_clipped_points(obj, lo, hi), api.collider_name(contract, base, i), coll)
+                 for i, (lo, hi) in enumerate(boxes)]
+    elif boxes is None:
         parts = [collider.hull_of_object(obj, api.collider_name(contract, base, 0))]
     else:
-        parts = [collider.box(lo, hi, api.collider_name(contract, base, i),
-                              obj.users_collection[0] if obj.users_collection else None)
+        parts = [collider.box(lo, hi, api.collider_name(contract, base, i), coll)
                  for i, (lo, hi) in enumerate(boxes)]
     for i, part in enumerate(parts):
         api.tag(part, obj[api.PROP_PIECE], obj[api.PROP_VARIANT], api.ROLE_COLLIDER, index=i)
