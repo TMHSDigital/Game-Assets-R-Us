@@ -22,6 +22,8 @@ import math
 
 import bpy
 
+from ..compat import operator_kwargs
+
 SAT_EPS = 1e-7
 
 
@@ -54,8 +56,15 @@ def _set_active(mesh, active, render):
         layer.active_render = layer.name == render
 
 
-def lightmap(obj, channel, render_channel, margin=0.02):
-    """Author a non-overlapping lightmap channel with Blender's own ops."""
+LIGHTMAP_PACK_MAX_MARGIN = 0.01  # UV units: the most lightmap_pack can give
+
+
+def lightmap(obj, channel, render_channel, margin=0.01):
+    """Author a non-overlapping lightmap channel with Blender's own ops.
+
+    Margins up to 0.01 come from lightmap_pack itself. Larger margins are
+    honored by re-packing the islands with pack_islands, whose FRACTION
+    margin is an exact share of the UV square."""
     mesh = obj.data
     if mesh.uv_layers.get(channel) is None:
         mesh.uv_layers.new(name=channel)
@@ -71,9 +80,17 @@ def lightmap(obj, channel, render_channel, margin=0.02):
                              area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
     # Measured in Blender-Developer-Tools: nominal margin in UV units is
     # PREF_MARGIN_DIV * 0.01, and the operator caps PREF_MARGIN_DIV at 1.0.
-    margin_div = min(1.0, max(0.001, margin / 0.01))
+    margin_div = min(1.0, max(0.001, margin / LIGHTMAP_PACK_MAX_MARGIN))
     bpy.ops.uv.lightmap_pack(PREF_CONTEXT="ALL_FACES", PREF_PACK_IN_ONE=True,
                              PREF_NEW_UVLAYER=False, PREF_MARGIN_DIV=margin_div)
+    if margin > LIGHTMAP_PACK_MAX_MARGIN:
+        bpy.ops.uv.select_all(action="SELECT")
+        accepted, dropped = operator_kwargs(bpy.ops.uv.pack_islands, {
+            "udim_source": "CLOSEST_UDIM", "rotate": False, "scale": True, "merge_overlap": False,
+            "margin_method": "FRACTION", "margin": margin, "shape_method": "CONCAVE"})
+        if dropped:
+            raise RuntimeError(f"uv.pack_islands lacks {dropped}; cannot honor lightmap_margin {margin}")
+        bpy.ops.uv.pack_islands(**accepted)
     bpy.ops.object.mode_set(mode="OBJECT")
     obj.select_set(False)
     _set_active(obj.data, channel, render_channel)
