@@ -32,7 +32,10 @@ hold:
   (`core/geometry/canonical.py`);
 - the FBX exporter's header time and its object uid hash (Python `hash()`,
   salted per process) are pinned during export (`core/exporters/writers.py`);
-- zips use sorted entries, fixed timestamps and fixed permissions.
+- zips use sorted entries, fixed timestamps and fixed permissions. Their
+  DEFLATE bytes also depend on the zlib build Blender's Python links
+  against, which the packaged `manifest.json` records under `package.zip`;
+  the zip is byte-identical only for the same zlib.
 
 Hashes are compared within one Blender version. Different Blender versions
 may write different bytes (the glTF exporter embeds its version, and

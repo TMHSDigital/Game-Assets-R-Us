@@ -7,6 +7,8 @@ import os
 import shutil
 import tempfile
 import unittest
+import zipfile
+import zlib
 
 import bpy
 
@@ -55,7 +57,7 @@ class MarketplaceChecks(unittest.TestCase):
             fh.write("same\n")
         entries = {"k/b.bin": b"\x00\x01", "k/a.txt": src}
         a = write_zip(os.path.join(self.tmp, "one", "k.zip"), entries)
-        os.utime(src, (0, 0))
+        os.utime(src, (631152000, 631152000))  # 1990: exFAT and FAT cannot store 1970
         b = write_zip(os.path.join(self.tmp, "two", "k.zip"), dict(reversed(list(entries.items()))))
         digest = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
         self.assertEqual(digest(a), digest(b))
@@ -95,6 +97,15 @@ class PackagePrerequisites(unittest.TestCase):
         self._write("export_manifest.json", {"roundtrip_passed": False, "files": [], "seed": 1, "blender": "x"})
         with self.assertRaisesRegex(PackagingError, "round-trip did not pass"):
             self._package()
+
+    def test_manifest_records_zip_settings(self):
+        self._write("export_manifest.json", {"roundtrip_passed": True, "files": [], "seed": 1, "blender": "x"})
+        self._write("reports/summary.json", {"passed": True, "checks": {}, "pieces": {}})
+        with zipfile.ZipFile(self._package()) as zf:
+            name = next(n for n in zf.namelist() if n.endswith("/manifest.json"))
+            shipped = json.loads(zf.read(name))
+        self.assertEqual(shipped["package"]["zip"]["zlib"], zlib.ZLIB_RUNTIME_VERSION)
+        self.assertEqual(shipped["seed"], 1)
 
     def test_stage_prerequisites(self):
         from core.cli import plan_stages
